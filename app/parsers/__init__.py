@@ -1,0 +1,1 @@
+from .parser_factory import get_document_parser as get_document_parser

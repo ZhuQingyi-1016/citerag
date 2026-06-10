@@ -1,0 +1,962 @@
+[
+  {
+    "case": "keyword_readme_retrieval_modes",
+    "category": "keyword",
+    "mode": "bm25",
+    "rerank_mode": "none",
+    "top_k": 3,
+    "retrieve_top_k": 10,
+    "status_code": 200,
+    "passed": true,
+    "question": "README 里有哪些 retrieval modes？",
+    "expected_any_of": [
+      "bm25",
+      "vector",
+      "hybrid"
+    ],
+    "answer": "README 里有以下 retrieval modes：\n\n- `bm25`: 关键词基础的检索\n- `vector`: 基于嵌入的语义检索\n- `hybrid`: 结合 BM25 和向量检索的排名融合",
+    "citations_count": 3,
+    "hits_count": 3,
+    "failure_type": null
+  },
+  {
+    "case": "keyword_readme_retrieval_modes",
+    "category": "keyword",
+    "mode": "bm25",
+    "rerank_mode": "cohere",
+    "top_k": 3,
+    "retrieve_top_k": 10,
+    "status_code": 200,
+    "passed": true,
+    "question": "README 里有哪些 retrieval modes？",
+    "expected_any_of": [
+      "bm25",
+      "vector",
+      "hybrid"
+    ],
+    "answer": "README 里有以下 retrieval modes：\n\n- `bm25`: keyword-based retrieval\n- `vector`: embedding-based semantic retrieval\n- `hybrid`: combines BM25 and vector retrieval with rank fusion",
+    "citations_count": 3,
+    "hits_count": 3,
+    "failure_type": null
+  },
+  {
+    "case": "keyword_readme_retrieval_modes",
+    "category": "keyword",
+    "mode": "vector",
+    "rerank_mode": "none",
+    "top_k": 3,
+    "retrieve_top_k": 10,
+    "status_code": 200,
+    "passed": true,
+    "question": "README 里有哪些 retrieval modes？",
+    "expected_any_of": [
+      "bm25",
+      "vector",
+      "hybrid"
+    ],
+    "answer": "README 里有以下 retrieval modes：\n\n- `bm25`: 关键词基础的检索\n- `vector`: 基于嵌入的语义检索\n- `hybrid`: 结合 BM25 和向量检索的排名融合",
+    "citations_count": 3,
+    "hits_count": 3,
+    "failure_type": null
+  },
+  {
+    "case": "keyword_readme_retrieval_modes",
+    "category": "keyword",
+    "mode": "vector",
+    "rerank_mode": "cohere",
+    "top_k": 3,
+    "retrieve_top_k": 10,
+    "status_code": 200,
+    "passed": true,
+    "question": "README 里有哪些 retrieval modes？",
+    "expected_any_of": [
+      "bm25",
+      "vector",
+      "hybrid"
+    ],
+    "answer": "README 里有以下 retrieval modes：\n\n- `bm25`: keyword-based retrieval\n- `vector`: embedding-based semantic retrieval\n- `hybrid`: combines BM25 and vector retrieval with rank fusion",
+    "citations_count": 3,
+    "hits_count": 3,
+    "failure_type": null
+  },
+  {
+    "case": "keyword_readme_retrieval_modes",
+    "category": "keyword",
+    "mode": "hybrid",
+    "rerank_mode": "none",
+    "top_k": 3,
+    "retrieve_top_k": 10,
+    "status_code": 200,
+    "passed": true,
+    "question": "README 里有哪些 retrieval modes？",
+    "expected_any_of": [
+      "bm25",
+      "vector",
+      "hybrid"
+    ],
+    "answer": "README 里有以下 retrieval modes：\n\n- `bm25`: 关键词基础的检索\n- `vector`: 基于嵌入的语义检索\n- `hybrid`: 结合 BM25 和向量检索的排名融合",
+    "citations_count": 3,
+    "hits_count": 3,
+    "failure_type": null
+  },
+  {
+    "case": "keyword_readme_retrieval_modes",
+    "category": "keyword",
+    "mode": "hybrid",
+    "rerank_mode": "cohere",
+    "top_k": 3,
+    "retrieve_top_k": 10,
+    "status_code": 200,
+    "passed": true,
+    "question": "README 里有哪些 retrieval modes？",
+    "expected_any_of": [
+      "bm25",
+      "vector",
+      "hybrid"
+    ],
+    "answer": "README 里有以下 retrieval modes：\n\n- `bm25`: keyword-based retrieval\n- `vector`: embedding-based semantic retrieval\n- `hybrid`: combines BM25 and vector retrieval with rank fusion",
+    "citations_count": 3,
+    "hits_count": 3,
+    "failure_type": null
+  },
+  {
+    "case": "keyword_requirements_fastapi",
+    "category": "keyword",
+    "mode": "bm25",
+    "rerank_mode": "none",
+    "top_k": 3,
+    "retrieve_top_k": 10,
+    "status_code": 200,
+    "passed": true,
+    "question": "requirements.txt 里有没有 fastapi？",
+    "expected_any_of": [
+      "fastapi"
+    ],
+    "answer": "requirements.txt 里有 fastapi。",
+    "citations_count": 1,
+    "hits_count": 1,
+    "failure_type": null
+  },
+  {
+    "case": "keyword_requirements_fastapi",
+    "category": "keyword",
+    "mode": "bm25",
+    "rerank_mode": "cohere",
+    "top_k": 3,
+    "retrieve_top_k": 10,
+    "status_code": 200,
+    "passed": true,
+    "question": "requirements.txt 里有没有 fastapi？",
+    "expected_any_of": [
+      "fastapi"
+    ],
+    "answer": "requirements.txt 里有 fastapi。",
+    "citations_count": 1,
+    "hits_count": 1,
+    "failure_type": null
+  },
+  {
+    "case": "keyword_requirements_fastapi",
+    "category": "keyword",
+    "mode": "vector",
+    "rerank_mode": "none",
+    "top_k": 3,
+    "retrieve_top_k": 10,
+    "status_code": 200,
+    "passed": true,
+    "question": "requirements.txt 里有没有 fastapi？",
+    "expected_any_of": [
+      "fastapi"
+    ],
+    "answer": "requirements.txt 里有 fastapi。",
+    "citations_count": 1,
+    "hits_count": 1,
+    "failure_type": null
+  },
+  {
+    "case": "keyword_requirements_fastapi",
+    "category": "keyword",
+    "mode": "vector",
+    "rerank_mode": "cohere",
+    "top_k": 3,
+    "retrieve_top_k": 10,
+    "status_code": 200,
+    "passed": true,
+    "question": "requirements.txt 里有没有 fastapi？",
+    "expected_any_of": [
+      "fastapi"
+    ],
+    "answer": "requirements.txt 里有 fastapi。",
+    "citations_count": 1,
+    "hits_count": 1,
+    "failure_type": null
+  },
+  {
+    "case": "keyword_requirements_fastapi",
+    "category": "keyword",
+    "mode": "hybrid",
+    "rerank_mode": "none",
+    "top_k": 3,
+    "retrieve_top_k": 10,
+    "status_code": 200,
+    "passed": true,
+    "question": "requirements.txt 里有没有 fastapi？",
+    "expected_any_of": [
+      "fastapi"
+    ],
+    "answer": "requirements.txt 里有 fastapi。",
+    "citations_count": 1,
+    "hits_count": 1,
+    "failure_type": null
+  },
+  {
+    "case": "keyword_requirements_fastapi",
+    "category": "keyword",
+    "mode": "hybrid",
+    "rerank_mode": "cohere",
+    "top_k": 3,
+    "retrieve_top_k": 10,
+    "status_code": 200,
+    "passed": true,
+    "question": "requirements.txt 里有没有 fastapi？",
+    "expected_any_of": [
+      "fastapi"
+    ],
+    "answer": "requirements.txt 里有 fastapi。",
+    "citations_count": 1,
+    "hits_count": 1,
+    "failure_type": null
+  },
+  {
+    "case": "semantic_readme_project_capabilities",
+    "category": "semantic",
+    "mode": "bm25",
+    "rerank_mode": "none",
+    "top_k": 3,
+    "retrieve_top_k": 10,
+    "status_code": 200,
+    "passed": true,
+    "question": "这个系统支持哪些核心能力？",
+    "expected_any_of": [
+      "document upload",
+      "文档上传",
+      "文件上传",
+      "retrieval",
+      "检索",
+      "generation",
+      "生成"
+    ],
+    "answer": "这个系统支持的核心能力包括文档上传、BM25索引、基于嵌入的检索、混合搜索、单文件和全局问答、带引用的答案生成，以及用于检索检查的调试端点。",
+    "citations_count": 3,
+    "hits_count": 3,
+    "failure_type": null
+  },
+  {
+    "case": "semantic_readme_project_capabilities",
+    "category": "semantic",
+    "mode": "bm25",
+    "rerank_mode": "cohere",
+    "top_k": 3,
+    "retrieve_top_k": 10,
+    "status_code": 200,
+    "passed": true,
+    "question": "这个系统支持哪些核心能力？",
+    "expected_any_of": [
+      "document upload",
+      "文档上传",
+      "文件上传",
+      "retrieval",
+      "检索",
+      "generation",
+      "生成"
+    ],
+    "answer": "这个系统支持的核心能力包括文档上传、BM25索引、基于嵌入的检索、混合搜索、单文件和全局问答、带引用的答案生成，以及用于检索检查的调试端点。",
+    "citations_count": 3,
+    "hits_count": 3,
+    "failure_type": null
+  },
+  {
+    "case": "semantic_readme_project_capabilities",
+    "category": "semantic",
+    "mode": "vector",
+    "rerank_mode": "none",
+    "top_k": 3,
+    "retrieve_top_k": 10,
+    "status_code": 200,
+    "passed": true,
+    "question": "这个系统支持哪些核心能力？",
+    "expected_any_of": [
+      "document upload",
+      "文档上传",
+      "文件上传",
+      "retrieval",
+      "检索",
+      "generation",
+      "生成"
+    ],
+    "answer": "这个系统支持的核心能力包括：\n\n1. 健康检查 (`GET /health`)\n2. 回声测试 (`POST /echo`)\n3. 文件上传 (`POST /upload`)\n4. 获取文件列表 (`GET /files`)\n5. 索引单个文件 (`POST /index/{file_id}`)\n6. 批量索引所有文件 (`POST /index_all`)\n7. 提问 (`POST /ask`)\n8. 调试提问 (`POST /ask_debug`)\n\n此外，系统还支持不同的检索模式，包括基于关键词的检索（BM25）、基于嵌入的语义检索和混合检索。",
+    "citations_count": 3,
+    "hits_count": 3,
+    "failure_type": null
+  },
+  {
+    "case": "semantic_readme_project_capabilities",
+    "category": "semantic",
+    "mode": "vector",
+    "rerank_mode": "cohere",
+    "top_k": 3,
+    "retrieve_top_k": 10,
+    "status_code": 200,
+    "passed": true,
+    "question": "这个系统支持哪些核心能力？",
+    "expected_any_of": [
+      "document upload",
+      "文档上传",
+      "文件上传",
+      "retrieval",
+      "检索",
+      "generation",
+      "生成"
+    ],
+    "answer": "这个系统支持的核心能力包括文档上传、BM25索引、基于嵌入的检索、混合搜索、单文件和全局问答、带引用的答案生成，以及用于检索检查的调试端点。",
+    "citations_count": 3,
+    "hits_count": 3,
+    "failure_type": null
+  },
+  {
+    "case": "semantic_readme_project_capabilities",
+    "category": "semantic",
+    "mode": "hybrid",
+    "rerank_mode": "none",
+    "top_k": 3,
+    "retrieve_top_k": 10,
+    "status_code": 200,
+    "passed": true,
+    "question": "这个系统支持哪些核心能力？",
+    "expected_any_of": [
+      "document upload",
+      "文档上传",
+      "文件上传",
+      "retrieval",
+      "检索",
+      "generation",
+      "生成"
+    ],
+    "answer": "这个系统支持的核心能力包括文档上传、BM25索引、基于嵌入的检索、混合搜索、单文件和全局问答、带引用的答案生成，以及用于检索检查的调试端点。",
+    "citations_count": 3,
+    "hits_count": 3,
+    "failure_type": null
+  },
+  {
+    "case": "semantic_readme_project_capabilities",
+    "category": "semantic",
+    "mode": "hybrid",
+    "rerank_mode": "cohere",
+    "top_k": 3,
+    "retrieve_top_k": 10,
+    "status_code": 200,
+    "passed": true,
+    "question": "这个系统支持哪些核心能力？",
+    "expected_any_of": [
+      "document upload",
+      "文档上传",
+      "文件上传",
+      "retrieval",
+      "检索",
+      "generation",
+      "生成"
+    ],
+    "answer": "这个系统支持的核心能力包括文档上传、BM25索引、基于嵌入的检索、混合搜索、单文件和全局问答、带引用的答案生成，以及用于检索检查的调试端点。",
+    "citations_count": 3,
+    "hits_count": 3,
+    "failure_type": null
+  },
+  {
+    "case": "semantic_readme_project_overview",
+    "category": "semantic",
+    "mode": "bm25",
+    "rerank_mode": "none",
+    "top_k": 3,
+    "retrieve_top_k": 10,
+    "status_code": 200,
+    "passed": true,
+    "question": "这个项目整体是做什么的？",
+    "expected_any_of": [
+      "Retrieval-Augmented Generation",
+      "检索增强生成",
+      "RAG"
+    ],
+    "answer": "这个项目整体是一个轻量级的检索增强生成（RAG）后端，使用FastAPI构建。它支持文档上传、BM25索引、基于嵌入的检索、混合搜索、单文件和全局问答、带引用的答案生成，以及用于检索检查的调试端点。该项目旨在作为一个大型语言模型（LLM）应用后端原型，并正在逐步升级。",
+    "citations_count": 3,
+    "hits_count": 3,
+    "failure_type": null
+  },
+  {
+    "case": "semantic_readme_project_overview",
+    "category": "semantic",
+    "mode": "bm25",
+    "rerank_mode": "cohere",
+    "top_k": 3,
+    "retrieve_top_k": 10,
+    "status_code": 200,
+    "passed": true,
+    "question": "这个项目整体是做什么的？",
+    "expected_any_of": [
+      "Retrieval-Augmented Generation",
+      "检索增强生成",
+      "RAG"
+    ],
+    "answer": "这个项目整体是一个轻量级的检索增强生成（RAG）后端，旨在支持文档上传、BM25索引、基于嵌入的检索、混合搜索、单文件和全局问答、带引用的答案生成，以及用于检索检查的调试端点。它被设计为一个大型语言模型（LLM）应用的后端原型，并正在逐步升级以实现更高的生产能力。",
+    "citations_count": 3,
+    "hits_count": 3,
+    "failure_type": null
+  },
+  {
+    "case": "semantic_readme_project_overview",
+    "category": "semantic",
+    "mode": "vector",
+    "rerank_mode": "none",
+    "top_k": 3,
+    "retrieve_top_k": 10,
+    "status_code": 200,
+    "passed": true,
+    "question": "这个项目整体是做什么的？",
+    "expected_any_of": [
+      "Retrieval-Augmented Generation",
+      "检索增强生成",
+      "RAG"
+    ],
+    "answer": "这个项目整体是一个轻量级的检索增强生成（RAG）后端，旨在支持文档上传、BM25索引、基于嵌入的检索、混合搜索、单文件和全局问答、带引用的答案生成，以及用于检索检查的调试端点。它被设计为一个大型语言模型（LLM）应用的后端原型，并正在逐步升级以朝着更成熟的产品方向发展。",
+    "citations_count": 3,
+    "hits_count": 3,
+    "failure_type": null
+  },
+  {
+    "case": "semantic_readme_project_overview",
+    "category": "semantic",
+    "mode": "vector",
+    "rerank_mode": "cohere",
+    "top_k": 3,
+    "retrieve_top_k": 10,
+    "status_code": 200,
+    "passed": true,
+    "question": "这个项目整体是做什么的？",
+    "expected_any_of": [
+      "Retrieval-Augmented Generation",
+      "检索增强生成",
+      "RAG"
+    ],
+    "answer": "这个项目整体是一个轻量级的检索增强生成（RAG）后端，旨在支持文档上传、BM25索引、基于嵌入的检索、混合搜索、单文件和全局问答、带引用的答案生成，以及用于检索检查的调试端点。它被设计为一个大型语言模型（LLM）应用的后端原型，并正在逐步升级以实现更高的生产能力。",
+    "citations_count": 3,
+    "hits_count": 3,
+    "failure_type": null
+  },
+  {
+    "case": "semantic_readme_project_overview",
+    "category": "semantic",
+    "mode": "hybrid",
+    "rerank_mode": "none",
+    "top_k": 3,
+    "retrieve_top_k": 10,
+    "status_code": 200,
+    "passed": true,
+    "question": "这个项目整体是做什么的？",
+    "expected_any_of": [
+      "Retrieval-Augmented Generation",
+      "检索增强生成",
+      "RAG"
+    ],
+    "answer": "这个项目整体是一个轻量级的检索增强生成（RAG）后端，旨在作为一个大型语言模型（LLM）应用的后端原型。它支持文档上传、BM25索引、基于嵌入的检索、混合搜索、单文件和全局问答、带引用的答案生成，以及用于检索检查的调试端点。",
+    "citations_count": 3,
+    "hits_count": 3,
+    "failure_type": null
+  },
+  {
+    "case": "semantic_readme_project_overview",
+    "category": "semantic",
+    "mode": "hybrid",
+    "rerank_mode": "cohere",
+    "top_k": 3,
+    "retrieve_top_k": 10,
+    "status_code": 200,
+    "passed": false,
+    "question": "这个项目整体是做什么的？",
+    "expected_any_of": [
+      "Retrieval-Augmented Generation",
+      "检索增强生成",
+      "RAG"
+    ],
+    "answer": "这个项目整体是一个文件上传和检索系统，支持文本和Markdown文件的上传、索引和问答功能。用户可以上传文件，系统会自动索引文件内容，并允许通过关键词或语义检索来提问。",
+    "citations_count": 3,
+    "hits_count": 3,
+    "failure_type": "quality_failure"
+  },
+  {
+    "case": "confusion_html_support_email",
+    "category": "confusion",
+    "mode": "bm25",
+    "rerank_mode": "none",
+    "top_k": 3,
+    "retrieve_top_k": 10,
+    "status_code": 200,
+    "passed": true,
+    "question": "What is the support email?",
+    "expected_any_of": [
+      "parser-test@example.com"
+    ],
+    "answer": "The support email is parser-test@example.com.",
+    "citations_count": 1,
+    "hits_count": 1,
+    "failure_type": null
+  },
+  {
+    "case": "confusion_html_support_email",
+    "category": "confusion",
+    "mode": "bm25",
+    "rerank_mode": "cohere",
+    "top_k": 3,
+    "retrieve_top_k": 10,
+    "status_code": 200,
+    "passed": true,
+    "question": "What is the support email?",
+    "expected_any_of": [
+      "parser-test@example.com"
+    ],
+    "answer": "The support email is parser-test@example.com.",
+    "citations_count": 1,
+    "hits_count": 1,
+    "failure_type": null
+  },
+  {
+    "case": "confusion_html_support_email",
+    "category": "confusion",
+    "mode": "vector",
+    "rerank_mode": "none",
+    "top_k": 3,
+    "retrieve_top_k": 10,
+    "status_code": 200,
+    "passed": true,
+    "question": "What is the support email?",
+    "expected_any_of": [
+      "parser-test@example.com"
+    ],
+    "answer": "The support email is parser-test@example.com.",
+    "citations_count": 1,
+    "hits_count": 1,
+    "failure_type": null
+  },
+  {
+    "case": "confusion_html_support_email",
+    "category": "confusion",
+    "mode": "vector",
+    "rerank_mode": "cohere",
+    "top_k": 3,
+    "retrieve_top_k": 10,
+    "status_code": 200,
+    "passed": true,
+    "question": "What is the support email?",
+    "expected_any_of": [
+      "parser-test@example.com"
+    ],
+    "answer": "The support email is parser-test@example.com.",
+    "citations_count": 1,
+    "hits_count": 1,
+    "failure_type": null
+  },
+  {
+    "case": "confusion_html_support_email",
+    "category": "confusion",
+    "mode": "hybrid",
+    "rerank_mode": "none",
+    "top_k": 3,
+    "retrieve_top_k": 10,
+    "status_code": 200,
+    "passed": true,
+    "question": "What is the support email?",
+    "expected_any_of": [
+      "parser-test@example.com"
+    ],
+    "answer": "The support email is parser-test@example.com.",
+    "citations_count": 1,
+    "hits_count": 1,
+    "failure_type": null
+  },
+  {
+    "case": "confusion_html_support_email",
+    "category": "confusion",
+    "mode": "hybrid",
+    "rerank_mode": "cohere",
+    "top_k": 3,
+    "retrieve_top_k": 10,
+    "status_code": 200,
+    "passed": true,
+    "question": "What is the support email?",
+    "expected_any_of": [
+      "parser-test@example.com"
+    ],
+    "answer": "The support email is parser-test@example.com.",
+    "citations_count": 1,
+    "hits_count": 1,
+    "failure_type": null
+  },
+  {
+    "case": "confusion_requirements_not_email",
+    "category": "confusion",
+    "mode": "bm25",
+    "rerank_mode": "none",
+    "top_k": 3,
+    "retrieve_top_k": 10,
+    "status_code": 200,
+    "passed": true,
+    "question": "What is the support email?",
+    "expected_any_of": [
+      "无法回答",
+      "无法确定",
+      "根据当前检索内容无法确定"
+    ],
+    "answer": "The support email cannot be determined from the provided context.",
+    "citations_count": 1,
+    "hits_count": 1,
+    "failure_type": null
+  },
+  {
+    "case": "confusion_requirements_not_email",
+    "category": "confusion",
+    "mode": "bm25",
+    "rerank_mode": "cohere",
+    "top_k": 3,
+    "retrieve_top_k": 10,
+    "status_code": 200,
+    "passed": true,
+    "question": "What is the support email?",
+    "expected_any_of": [
+      "无法回答",
+      "无法确定",
+      "根据当前检索内容无法确定"
+    ],
+    "answer": "The support email cannot be determined from the provided context.",
+    "citations_count": 1,
+    "hits_count": 1,
+    "failure_type": null
+  },
+  {
+    "case": "confusion_requirements_not_email",
+    "category": "confusion",
+    "mode": "vector",
+    "rerank_mode": "none",
+    "top_k": 3,
+    "retrieve_top_k": 10,
+    "status_code": 200,
+    "passed": true,
+    "question": "What is the support email?",
+    "expected_any_of": [
+      "无法回答",
+      "无法确定",
+      "根据当前检索内容无法确定"
+    ],
+    "answer": "The support email cannot be determined from the provided context.",
+    "citations_count": 1,
+    "hits_count": 1,
+    "failure_type": null
+  },
+  {
+    "case": "confusion_requirements_not_email",
+    "category": "confusion",
+    "mode": "vector",
+    "rerank_mode": "cohere",
+    "top_k": 3,
+    "retrieve_top_k": 10,
+    "status_code": 200,
+    "passed": true,
+    "question": "What is the support email?",
+    "expected_any_of": [
+      "无法回答",
+      "无法确定",
+      "根据当前检索内容无法确定"
+    ],
+    "answer": "The support email cannot be determined from the provided context.",
+    "citations_count": 1,
+    "hits_count": 1,
+    "failure_type": null
+  },
+  {
+    "case": "confusion_requirements_not_email",
+    "category": "confusion",
+    "mode": "hybrid",
+    "rerank_mode": "none",
+    "top_k": 3,
+    "retrieve_top_k": 10,
+    "status_code": 200,
+    "passed": true,
+    "question": "What is the support email?",
+    "expected_any_of": [
+      "无法回答",
+      "无法确定",
+      "根据当前检索内容无法确定"
+    ],
+    "answer": "The support email cannot be determined from the provided context.",
+    "citations_count": 1,
+    "hits_count": 1,
+    "failure_type": null
+  },
+  {
+    "case": "confusion_requirements_not_email",
+    "category": "confusion",
+    "mode": "hybrid",
+    "rerank_mode": "cohere",
+    "top_k": 3,
+    "retrieve_top_k": 10,
+    "status_code": 200,
+    "passed": true,
+    "question": "What is the support email?",
+    "expected_any_of": [
+      "无法回答",
+      "无法确定",
+      "根据当前检索内容无法确定"
+    ],
+    "answer": "The support email cannot be determined from the provided context.",
+    "citations_count": 1,
+    "hits_count": 1,
+    "failure_type": null
+  },
+  {
+    "case": "no_answer_readme_breakfast",
+    "category": "no_answer",
+    "mode": "bm25",
+    "rerank_mode": "none",
+    "top_k": 3,
+    "retrieve_top_k": 10,
+    "status_code": 200,
+    "passed": true,
+    "question": "这个项目作者最喜欢的早餐是什么？",
+    "expected_any_of": [
+      "无法回答",
+      "无法确定",
+      "根据当前检索内容无法确定"
+    ],
+    "answer": "无法确定这个项目作者最喜欢的早餐是什么。",
+    "citations_count": 3,
+    "hits_count": 3,
+    "failure_type": null
+  },
+  {
+    "case": "no_answer_readme_breakfast",
+    "category": "no_answer",
+    "mode": "bm25",
+    "rerank_mode": "cohere",
+    "top_k": 3,
+    "retrieve_top_k": 10,
+    "status_code": 200,
+    "passed": true,
+    "question": "这个项目作者最喜欢的早餐是什么？",
+    "expected_any_of": [
+      "无法回答",
+      "无法确定",
+      "根据当前检索内容无法确定"
+    ],
+    "answer": "从提供的上下文中无法确定这个项目作者最喜欢的早餐是什么。",
+    "citations_count": 3,
+    "hits_count": 3,
+    "failure_type": null
+  },
+  {
+    "case": "no_answer_readme_breakfast",
+    "category": "no_answer",
+    "mode": "vector",
+    "rerank_mode": "none",
+    "top_k": 3,
+    "retrieve_top_k": 10,
+    "status_code": 200,
+    "passed": true,
+    "question": "这个项目作者最喜欢的早餐是什么？",
+    "expected_any_of": [
+      "无法回答",
+      "无法确定",
+      "根据当前检索内容无法确定"
+    ],
+    "answer": "从提供的上下文中无法确定这个项目作者最喜欢的早餐是什么。",
+    "citations_count": 3,
+    "hits_count": 3,
+    "failure_type": null
+  },
+  {
+    "case": "no_answer_readme_breakfast",
+    "category": "no_answer",
+    "mode": "vector",
+    "rerank_mode": "cohere",
+    "top_k": 3,
+    "retrieve_top_k": 10,
+    "status_code": 200,
+    "passed": true,
+    "question": "这个项目作者最喜欢的早餐是什么？",
+    "expected_any_of": [
+      "无法回答",
+      "无法确定",
+      "根据当前检索内容无法确定"
+    ],
+    "answer": "从提供的上下文中无法确定这个项目作者最喜欢的早餐是什么。",
+    "citations_count": 3,
+    "hits_count": 3,
+    "failure_type": null
+  },
+  {
+    "case": "no_answer_readme_breakfast",
+    "category": "no_answer",
+    "mode": "hybrid",
+    "rerank_mode": "none",
+    "top_k": 3,
+    "retrieve_top_k": 10,
+    "status_code": 200,
+    "passed": true,
+    "question": "这个项目作者最喜欢的早餐是什么？",
+    "expected_any_of": [
+      "无法回答",
+      "无法确定",
+      "根据当前检索内容无法确定"
+    ],
+    "answer": "从提供的上下文中无法确定这个项目作者最喜欢的早餐是什么。",
+    "citations_count": 3,
+    "hits_count": 3,
+    "failure_type": null
+  },
+  {
+    "case": "no_answer_readme_breakfast",
+    "category": "no_answer",
+    "mode": "hybrid",
+    "rerank_mode": "cohere",
+    "top_k": 3,
+    "retrieve_top_k": 10,
+    "status_code": 200,
+    "passed": true,
+    "question": "这个项目作者最喜欢的早餐是什么？",
+    "expected_any_of": [
+      "无法回答",
+      "无法确定",
+      "根据当前检索内容无法确定"
+    ],
+    "answer": "从提供的上下文中无法确定这个项目作者最喜欢的早餐是什么。",
+    "citations_count": 3,
+    "hits_count": 3,
+    "failure_type": null
+  },
+  {
+    "case": "no_answer_html_ceo",
+    "category": "no_answer",
+    "mode": "bm25",
+    "rerank_mode": "none",
+    "top_k": 3,
+    "retrieve_top_k": 10,
+    "status_code": 200,
+    "passed": true,
+    "question": "Who is the CEO of this project?",
+    "expected_any_of": [
+      "无法回答",
+      "无法确定",
+      "根据当前检索内容无法确定"
+    ],
+    "answer": "The context does not provide information about the CEO of the project.",
+    "citations_count": 1,
+    "hits_count": 1,
+    "failure_type": null
+  },
+  {
+    "case": "no_answer_html_ceo",
+    "category": "no_answer",
+    "mode": "bm25",
+    "rerank_mode": "cohere",
+    "top_k": 3,
+    "retrieve_top_k": 10,
+    "status_code": 200,
+    "passed": true,
+    "question": "Who is the CEO of this project?",
+    "expected_any_of": [
+      "无法回答",
+      "无法确定",
+      "根据当前检索内容无法确定"
+    ],
+    "answer": "The context does not provide information about the CEO of the project.",
+    "citations_count": 1,
+    "hits_count": 1,
+    "failure_type": null
+  },
+  {
+    "case": "no_answer_html_ceo",
+    "category": "no_answer",
+    "mode": "vector",
+    "rerank_mode": "none",
+    "top_k": 3,
+    "retrieve_top_k": 10,
+    "status_code": 200,
+    "passed": true,
+    "question": "Who is the CEO of this project?",
+    "expected_any_of": [
+      "无法回答",
+      "无法确定",
+      "根据当前检索内容无法确定"
+    ],
+    "answer": "The context does not provide information about the CEO of the project.",
+    "citations_count": 1,
+    "hits_count": 1,
+    "failure_type": null
+  },
+  {
+    "case": "no_answer_html_ceo",
+    "category": "no_answer",
+    "mode": "vector",
+    "rerank_mode": "cohere",
+    "top_k": 3,
+    "retrieve_top_k": 10,
+    "status_code": 200,
+    "passed": true,
+    "question": "Who is the CEO of this project?",
+    "expected_any_of": [
+      "无法回答",
+      "无法确定",
+      "根据当前检索内容无法确定"
+    ],
+    "answer": "The context does not provide information about the CEO of the project.",
+    "citations_count": 1,
+    "hits_count": 1,
+    "failure_type": null
+  },
+  {
+    "case": "no_answer_html_ceo",
+    "category": "no_answer",
+    "mode": "hybrid",
+    "rerank_mode": "none",
+    "top_k": 3,
+    "retrieve_top_k": 10,
+    "status_code": 200,
+    "passed": true,
+    "question": "Who is the CEO of this project?",
+    "expected_any_of": [
+      "无法回答",
+      "无法确定",
+      "根据当前检索内容无法确定"
+    ],
+    "answer": "The context does not provide information about the CEO of the project.",
+    "citations_count": 1,
+    "hits_count": 1,
+    "failure_type": null
+  },
+  {
+    "case": "no_answer_html_ceo",
+    "category": "no_answer",
+    "mode": "hybrid",
+    "rerank_mode": "cohere",
+    "top_k": 3,
+    "retrieve_top_k": 10,
+    "status_code": 200,
+    "passed": true,
+    "question": "Who is the CEO of this project?",
+    "expected_any_of": [
+      "无法回答",
+      "无法确定",
+      "根据当前检索内容无法确定"
+    ],
+    "answer": "The context does not provide information about the CEO of the project.",
+    "citations_count": 1,
+    "hits_count": 1,
+    "failure_type": null
+  }
+]

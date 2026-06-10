@@ -1,0 +1,92 @@
+[
+  {
+    "name": "keyword_readme_retrieval_modes",
+    "category": "keyword",
+    "question": "README 里有哪些 retrieval modes？",
+    "file_id": "152dd80c5c0841be85254554ddbb488f",
+    "expected_any_of": ["bm25", "vector", "hybrid"],
+    "retrieval_modes": ["bm25", "vector", "hybrid"],
+    "rerank_modes": ["none", "cohere"]
+  },
+  {
+    "name": "keyword_requirements_fastapi",
+    "category": "keyword",
+    "question": "requirements.txt 里有没有 fastapi？",
+    "file_id": "2fbe46608cc64a71856f422269b67928",
+    "expected_any_of": ["fastapi"],
+    "retrieval_modes": ["bm25", "vector", "hybrid"],
+    "rerank_modes": ["none", "cohere"]
+  },
+  {
+    "name": "semantic_readme_project_capabilities",
+    "category": "semantic",
+    "question": "这个系统支持哪些核心能力？",
+    "file_id": "152dd80c5c0841be85254554ddbb488f",
+    "expected_any_of": ["document upload", "文档上传", "文件上传", "retrieval", "检索", "generation", "生成"],
+    "retrieval_modes": ["bm25", "vector", "hybrid"],
+    "rerank_modes": ["none", "cohere"],
+    "top_k": 3,
+    "retrieve_top_k": 10
+  },
+  {
+    "name": "semantic_readme_project_overview",
+    "category": "semantic",
+    "question": "这个项目整体是做什么的？",
+    "file_id": "152dd80c5c0841be85254554ddbb488f",
+    "expected_any_of": [
+      "Retrieval-Augmented Generation",
+      "检索增强生成",
+      "RAG"
+    ],
+    "retrieval_modes": ["bm25", "vector", "hybrid"],
+    "rerank_modes": ["none", "cohere"]
+  },
+  {
+    "name": "confusion_html_support_email",
+    "category": "confusion",
+    "question": "What is the support email?",
+    "file_id": "80478858d5314faea4485026ddbb3385",
+    "expected_any_of": ["parser-test@example.com"],
+    "retrieval_modes": ["bm25", "vector", "hybrid"],
+    "rerank_modes": ["none", "cohere"]
+  },
+  {
+    "name": "confusion_requirements_not_email",
+    "category": "confusion",
+    "question": "What is the support email?",
+    "file_id": "2fbe46608cc64a71856f422269b67928",
+    "expected_any_of": [
+      "无法回答",
+      "无法确定",
+      "根据当前检索内容无法确定"
+    ],
+    "retrieval_modes": ["bm25", "vector", "hybrid"],
+    "rerank_modes": ["none", "cohere"]
+  },
+  {
+    "name": "no_answer_readme_breakfast",
+    "category": "no_answer",
+    "question": "这个项目作者最喜欢的早餐是什么？",
+    "file_id": "152dd80c5c0841be85254554ddbb488f",
+    "expected_any_of": [
+      "无法回答",
+      "无法确定",
+      "根据当前检索内容无法确定"
+    ],
+    "retrieval_modes": ["bm25", "vector", "hybrid"],
+    "rerank_modes": ["none", "cohere"]
+  },
+  {
+    "name": "no_answer_html_ceo",
+    "category": "no_answer",
+    "question": "Who is the CEO of this project?",
+    "file_id": "80478858d5314faea4485026ddbb3385",
+    "expected_any_of": [
+      "无法回答",
+      "无法确定",
+      "根据当前检索内容无法确定"
+    ],
+    "retrieval_modes": ["bm25", "vector", "hybrid"],
+    "rerank_modes": ["none", "cohere"]
+  }
+]

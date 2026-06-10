@@ -1,0 +1,40 @@
+.venv/
+__pycache__/
+.DS_Store
+outputs/
+storage/
+.env
+# Python virtual environments and caches
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# OS / editor files
+.DS_Store
+.vscode/
+.idea/
+
+# Runtime outputs and local storage
+outputs/
+storage/
+data/
+logs/
+*.log
+*.sqlite
+*.sqlite3
+*.db
+
+# Local artifacts
+*.mp4
+*.mov

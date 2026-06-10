@@ -1,0 +1,1014 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CiteRAG Minimal Frontend</title>
+  <style>
+    :root {
+      --bg: #f4f6f8;
+      --card: #ffffff;
+      --text: #16212e;
+      --muted: #5a6a7a;
+      --line: #d9e0e7;
+      --primary: #0b6bcb;
+      --primary-hover: #0858a7;
+      --success: #117a37;
+      --warn: #b26a00;
+      --danger: #b42318;
+      --shadow: 0 8px 24px rgba(16, 30, 44, 0.08);
+      --radius: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background: linear-gradient(180deg, #f7fafc 0%, var(--bg) 100%);
+      color: var(--text);
+    }
+
+    .container {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+
+    .title {
+      margin: 8px 0 4px;
+      font-size: 24px;
+      font-weight: 700;
+    }
+
+    .subtitle {
+      margin: 0 0 16px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+
+    .section-title {
+      margin: 0 0 12px;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 9px 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      font: inherit;
+      background: #fff;
+      color: var(--text);
+    }
+
+    textarea {
+      min-height: 84px;
+      resize: vertical;
+    }
+
+    button {
+      border: none;
+      border-radius: 8px;
+      padding: 9px 12px;
+      background: var(--primary);
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: var(--primary-hover);
+    }
+
+    button.secondary {
+      background: #e8edf3;
+      color: var(--text);
+    }
+
+    button.secondary:hover {
+      background: #dce4ed;
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .msg {
+      margin-top: 10px;
+      padding: 9px 10px;
+      border-radius: 8px;
+      font-size: 13px;
+      display: none;
+    }
+
+    .msg.show {
+      display: block;
+    }
+
+    .msg.info {
+      background: #eef6ff;
+      color: #0c4b88;
+    }
+
+    .msg.success {
+      background: #eaf9ef;
+      color: var(--success);
+    }
+
+    .msg.warn {
+      background: #fff6e8;
+      color: var(--warn);
+    }
+
+    .msg.error {
+      background: #fff0f0;
+      color: var(--danger);
+    }
+
+    .files {
+      display: grid;
+      gap: 10px;
+    }
+
+    .file-item {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px;
+      background: #fbfdff;
+    }
+
+    .file-name {
+      font-weight: 700;
+      word-break: break-all;
+    }
+
+    .meta {
+      margin-top: 6px;
+      font-size: 13px;
+      color: var(--muted);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 14px;
+    }
+
+    .status {
+      margin-top: 8px;
+      display: inline-block;
+      font-size: 12px;
+      border-radius: 999px;
+      padding: 3px 9px;
+      background: #e9f4ff;
+      color: #0c4b88;
+    }
+
+    .status.partial {
+      background: #fff6e8;
+      color: var(--warn);
+    }
+
+    .status.ready {
+      background: #eaf9ef;
+      color: var(--success);
+    }
+
+    .small {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .citation {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px;
+      margin-top: 8px;
+      background: #fbfdff;
+    }
+
+    .citation pre {
+      margin: 6px 0 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font: inherit;
+      color: #23384d;
+    }
+
+    .link-button {
+      margin-top: 6px;
+      padding: 0;
+      border: none;
+      background: none;
+      color: var(--primary);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .hit {
+      border: 1px dashed var(--line);
+      border-radius: 10px;
+      padding: 10px;
+      margin-top: 8px;
+      background: #f6fbff;
+    }
+
+    .grow {
+      flex: 1 1 280px;
+      min-width: 0;
+    }
+
+    .history-item {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px;
+      margin-top: 8px;
+      background: #fbfdff;
+      cursor: pointer;
+    }
+
+    .history-item:hover {
+      background: #f5f9ff;
+    }
+
+    @media (max-width: 700px) {
+      .container {
+        padding: 12px;
+      }
+      .title {
+        font-size: 22px;
+      }
+      button {
+        width: 100%;
+      }
+      .row > * {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 class="title">CiteRAG 前端（最小版）</h1>
+    <p class="subtitle">上传文档 -> 查看状态 -> 提问 -> 查看答案与引用</p>
+
+    <div class="card">
+      <h2 class="section-title">后端地址</h2>
+      <div class="row">
+        <div class="grow">
+          <input id="apiBaseInput" type="text" placeholder="留空表示同源，例如 http://127.0.0.1:8000" />
+        </div>
+        <button id="saveBaseBtn" class="secondary" type="button">保存地址</button>
+      </div>
+      <div id="baseMsg" class="msg info"></div>
+    </div>
+
+    <div class="card">
+      <h2 class="section-title">分组管理</h2>
+      <div class="row">
+        <div class="grow">
+          <input id="newGroupNameInput" type="text" placeholder="输入新分组名称，例如：课题组A" />
+        </div>
+        <button id="createGroupBtn" type="button">新建分组</button>
+      </div>
+      <div id="groupMsg" class="msg"></div>
+    </div>
+
+    <div class="card">
+      <h2 class="section-title">文件上传</h2>
+      <div class="row">
+        <input id="fileInput" class="grow" type="file" />
+        <div class="grow" style="min-width: 180px;">
+          <select id="uploadGroupSelect">
+            <option value="">上传到分组（可选）</option>
+          </select>
+        </div>
+        <label class="small">
+          <input id="autoIndexInput" type="checkbox" checked />
+          上传后自动索引
+        </label>
+        <button id="uploadBtn" type="button">上传</button>
+      </div>
+      <div id="uploadMsg" class="msg"></div>
+    </div>
+
+    <div class="card">
+      <div class="row" style="justify-content: space-between;">
+        <h2 class="section-title" style="margin: 0;">文件列表</h2>
+        <div class="row">
+          <select id="groupFilterSelect" style="min-width: 180px;">
+            <option value="">全部分组</option>
+          </select>
+          <label class="small">
+            <input id="readyOnlyInput" type="checkbox" />
+            仅看已可问答
+          </label>
+          <button id="refreshFilesBtn" class="secondary" type="button">刷新列表</button>
+        </div>
+      </div>
+      <div id="filesMsg" class="msg"></div>
+      <div id="filesContainer" class="files"></div>
+    </div>
+
+    <div class="card">
+      <h2 class="section-title">问答</h2>
+      <div class="row">
+        <label class="small">
+          <input type="radio" name="scope" value="all" checked />
+          全部文档
+        </label>
+        <label class="small">
+          <input type="radio" name="scope" value="single" />
+          指定文档
+        </label>
+      </div>
+      <div class="row" style="margin-top: 8px;">
+        <div class="grow">
+          <select id="fileSelect" disabled>
+            <option value="">请选择文件</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-top: 8px;">
+        <textarea id="questionInput" placeholder="请输入你的问题"></textarea>
+      </div>
+      <div class="row" style="margin-top: 8px;">
+        <label class="small">
+          <input id="debugModeInput" type="checkbox" />
+          调试模式（显示检索 hits）
+        </label>
+        <button id="askBtn" type="button">提交问题</button>
+      </div>
+      <div id="askMsg" class="msg"></div>
+    </div>
+
+    <div class="card">
+      <h2 class="section-title">答案与引用</h2>
+      <div id="answerArea" class="small">暂未提问</div>
+      <div id="citationsArea" style="margin-top: 10px;"></div>
+      <div id="hitsArea" style="margin-top: 10px;"></div>
+    </div>
+
+    <div class="card">
+      <div class="row" style="justify-content: space-between;">
+        <h2 class="section-title" style="margin: 0;">问答历史（本地）</h2>
+        <button id="clearHistoryBtn" class="secondary" type="button">清空历史</button>
+      </div>
+      <div class="small">点击某条记录可回填展示。</div>
+      <div id="historyArea" style="margin-top: 8px;"></div>
+    </div>
+  </div>
+
+  <script>
+    const HISTORY_KEY = "citerag_qa_history_v1";
+    const HISTORY_MAX = 20;
+
+    function loadHistoryFromStorage() {
+      try {
+        const raw = localStorage.getItem(HISTORY_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    const state = {
+      apiBase: localStorage.getItem("citerag_api_base") || "",
+      files: [],
+      groups: [],
+      selectedGroupId: "",
+      uploading: false,
+      asking: false,
+      indexing: new Set(),
+      showReadyOnly: false,
+      debugMode: false,
+      qaHistory: loadHistoryFromStorage(),
+    };
+
+    const els = {
+      apiBaseInput: document.getElementById("apiBaseInput"),
+      saveBaseBtn: document.getElementById("saveBaseBtn"),
+      baseMsg: document.getElementById("baseMsg"),
+      newGroupNameInput: document.getElementById("newGroupNameInput"),
+      createGroupBtn: document.getElementById("createGroupBtn"),
+      groupMsg: document.getElementById("groupMsg"),
+      fileInput: document.getElementById("fileInput"),
+      uploadGroupSelect: document.getElementById("uploadGroupSelect"),
+      autoIndexInput: document.getElementById("autoIndexInput"),
+      uploadBtn: document.getElementById("uploadBtn"),
+      uploadMsg: document.getElementById("uploadMsg"),
+      groupFilterSelect: document.getElementById("groupFilterSelect"),
+      readyOnlyInput: document.getElementById("readyOnlyInput"),
+      refreshFilesBtn: document.getElementById("refreshFilesBtn"),
+      filesMsg: document.getElementById("filesMsg"),
+      filesContainer: document.getElementById("filesContainer"),
+      fileSelect: document.getElementById("fileSelect"),
+      questionInput: document.getElementById("questionInput"),
+      debugModeInput: document.getElementById("debugModeInput"),
+      askBtn: document.getElementById("askBtn"),
+      askMsg: document.getElementById("askMsg"),
+      answerArea: document.getElementById("answerArea"),
+      citationsArea: document.getElementById("citationsArea"),
+      hitsArea: document.getElementById("hitsArea"),
+      historyArea: document.getElementById("historyArea"),
+      clearHistoryBtn: document.getElementById("clearHistoryBtn"),
+    };
+
+    function setMessage(el, type, text) {
+      el.className = "msg show " + type;
+      el.textContent = text;
+    }
+
+    function clearMessage(el) {
+      el.className = "msg";
+      el.textContent = "";
+    }
+
+    function buildUrl(path) {
+      const base = state.apiBase.trim().replace(/\/+$/, "");
+      if (!base) return path;
+      return base + path;
+    }
+
+    async function request(path, options = {}) {
+      const res = await fetch(buildUrl(path), options);
+      let data = null;
+      const ctype = res.headers.get("content-type") || "";
+      if (ctype.includes("application/json")) {
+        data = await res.json();
+      } else {
+        data = await res.text();
+      }
+      if (!res.ok) {
+        const detail = data && typeof data === "object" ? data.detail : null;
+        throw new Error(detail || ("HTTP " + res.status));
+      }
+      return data;
+    }
+
+    function formatBytes(bytes) {
+      if (!Number.isFinite(bytes)) return "-";
+      if (bytes < 1024) return bytes + " B";
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+      return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+    }
+
+    function fileStatus(file) {
+      const bm25 = !!file.bm25_indexed;
+      const vector = !!file.vector_indexed;
+      if (bm25 && vector) return { label: "已可问答", cls: "ready" };
+      if (bm25 || vector) return { label: "部分完成", cls: "partial" };
+      return { label: "未索引", cls: "" };
+    }
+
+    function renderFiles() {
+      const container = els.filesContainer;
+      container.innerHTML = "";
+      const files = state.showReadyOnly
+        ? state.files.filter((f) => f.bm25_indexed && f.vector_indexed)
+        : state.files;
+
+      if (!files.length) {
+        container.innerHTML = '<div class="small">暂无文件，请先上传。</div>';
+        renderFileSelect();
+        return;
+      }
+
+      files.forEach((file) => {
+        const status = fileStatus(file);
+        const item = document.createElement("div");
+        item.className = "file-item";
+        const visibleName = file.display_name || file.filename;
+        const hasAlias = !!file.display_name && file.display_name !== file.filename;
+
+        const indexBtnDisabled = state.indexing.has(file.file_id);
+        const showIndexBtn = !(file.bm25_indexed && file.vector_indexed);
+        item.innerHTML = `
+          <div class="file-name">${escapeHtml(visibleName)}</div>
+          ${hasAlias ? `<div class="small">原始文件名：${escapeHtml(file.filename)}</div>` : ""}
+          <div class="meta">
+            <span>大小：${formatBytes(file.size_bytes)}</span>
+            <span>更新时间：${escapeHtml(file.modified_time || "-")}</span>
+            <span>BM25：${file.bm25_indexed ? "是" : "否"}</span>
+            <span>Vector：${file.vector_indexed ? "是" : "否"}</span>
+          </div>
+          <div class="row" style="margin-top:8px;">
+            <div class="grow" style="min-width: 180px;">
+              <select data-group-file-id="${file.file_id}">
+                <option value="">未分组</option>
+                ${state.groups.map((g) => `<option value="${g.group_id}" ${file.group_id === g.group_id ? "selected" : ""}>${escapeHtml(g.name)}</option>`).join("")}
+              </select>
+            </div>
+            <button type="button" class="secondary" data-rename-id="${file.file_id}">重命名</button>
+            <button type="button" class="secondary" data-delete-id="${file.file_id}">删除</button>
+          </div>
+          <div class="status ${status.cls}">${status.label}</div>
+          ${showIndexBtn ? `<div style="margin-top:8px;"><button type="button" data-index-id="${file.file_id}" ${indexBtnDisabled ? "disabled" : ""}>${indexBtnDisabled ? "索引中..." : "立即索引"}</button></div>` : ""}
+        `;
+        container.appendChild(item);
+      });
+
+      container.querySelectorAll("button[data-index-id]").forEach((btn) => {
+        btn.addEventListener("click", () => indexFile(btn.getAttribute("data-index-id")));
+      });
+      container.querySelectorAll("button[data-rename-id]").forEach((btn) => {
+        btn.addEventListener("click", () => renameFile(btn.getAttribute("data-rename-id")));
+      });
+      container.querySelectorAll("button[data-delete-id]").forEach((btn) => {
+        btn.addEventListener("click", () => deleteFile(btn.getAttribute("data-delete-id")));
+      });
+      container.querySelectorAll("select[data-group-file-id]").forEach((sel) => {
+        sel.addEventListener("change", () => {
+          updateFileGroup(sel.getAttribute("data-group-file-id"), sel.value || null);
+        });
+      });
+
+      renderFileSelect();
+    }
+
+    function renderFileSelect() {
+      const currentValue = els.fileSelect.value;
+      const readyFiles = state.files.filter((f) => f.bm25_indexed && f.vector_indexed);
+      els.fileSelect.innerHTML = '<option value="">请选择文件</option>';
+      readyFiles.forEach((file) => {
+        const opt = document.createElement("option");
+        opt.value = file.file_id;
+        opt.textContent = file.display_name || file.filename;
+        els.fileSelect.appendChild(opt);
+      });
+      if (readyFiles.some((f) => f.file_id === currentValue)) {
+        els.fileSelect.value = currentValue;
+      }
+    }
+
+    function renderGroupSelectors() {
+      els.uploadGroupSelect.innerHTML = '<option value="">上传到分组（可选）</option>' +
+        state.groups.map((g) => `<option value="${g.group_id}">${escapeHtml(g.name)}</option>`).join("");
+
+      els.groupFilterSelect.innerHTML = '<option value="">全部分组</option>' +
+        state.groups.map((g) => `<option value="${g.group_id}">${escapeHtml(g.name)}</option>`).join("");
+
+      if (state.selectedGroupId) {
+        els.groupFilterSelect.value = state.selectedGroupId;
+      }
+    }
+
+    function formatTime(iso) {
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return iso || "-";
+      const p = (n) => String(n).padStart(2, "0");
+      return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + " " +
+        p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds());
+    }
+
+    function saveHistoryToStorage() {
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(state.qaHistory));
+    }
+
+    function pushHistory(entry) {
+      state.qaHistory.unshift(entry);
+      if (state.qaHistory.length > HISTORY_MAX) {
+        state.qaHistory = state.qaHistory.slice(0, HISTORY_MAX);
+      }
+      saveHistoryToStorage();
+      renderHistory();
+    }
+
+    function renderHistory() {
+      els.historyArea.innerHTML = "";
+      if (!state.qaHistory.length) {
+        els.historyArea.innerHTML = '<div class="small">暂无历史记录。</div>';
+        return;
+      }
+
+      state.qaHistory.forEach((item, idx) => {
+        const div = document.createElement("div");
+        div.className = "history-item";
+        div.setAttribute("data-history-idx", String(idx));
+        div.innerHTML = `
+          <div><strong>${escapeHtml(item.question || "-")}</strong></div>
+          <div class="small" style="margin-top:4px;">
+            ${escapeHtml(formatTime(item.created_at))} | ${escapeHtml(item.mode || "normal")} | citations=${(item.citations || []).length}
+          </div>
+          <div class="small" style="margin-top:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+            ${escapeHtml(item.answer || "")}
+          </div>
+        `;
+        els.historyArea.appendChild(div);
+      });
+
+      els.historyArea.querySelectorAll("[data-history-idx]").forEach((node) => {
+        node.addEventListener("click", () => {
+          const idx = Number(node.getAttribute("data-history-idx"));
+          const item = state.qaHistory[idx];
+          if (!item) return;
+          renderAnswer(item, { showHits: item.mode === "debug" });
+          setMessage(els.askMsg, "info", "已加载历史记录。");
+        });
+      });
+    }
+
+    function escapeHtml(text) {
+      return String(text)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    async function loadFiles() {
+      clearMessage(els.filesMsg);
+      try {
+        let path = "/files";
+        if (state.selectedGroupId) {
+          path += "?group_id=" + encodeURIComponent(state.selectedGroupId);
+        }
+        const data = await request(path);
+        state.files = Array.isArray(data.files) ? data.files : [];
+        renderFiles();
+      } catch (err) {
+        setMessage(els.filesMsg, "error", "获取文件列表失败：" + err.message);
+      }
+    }
+
+    async function loadGroups() {
+      clearMessage(els.groupMsg);
+      try {
+        const data = await request("/groups");
+        state.groups = Array.isArray(data.groups) ? data.groups : [];
+        renderGroupSelectors();
+        renderFiles();
+      } catch (err) {
+        setMessage(els.groupMsg, "error", "获取分组失败：" + err.message);
+      }
+    }
+
+    async function uploadFile() {
+      if (state.uploading) return;
+      clearMessage(els.uploadMsg);
+
+      const file = els.fileInput.files && els.fileInput.files[0];
+      if (!file) {
+        setMessage(els.uploadMsg, "warn", "请先选择文件。");
+        return;
+      }
+
+      state.uploading = true;
+      els.uploadBtn.disabled = true;
+      setMessage(els.uploadMsg, "info", "上传中...");
+
+      try {
+        const autoIndex = els.autoIndexInput.checked;
+        const formData = new FormData();
+        formData.append("file", file);
+        let path = "/upload?auto_index=" + String(autoIndex);
+        if (els.uploadGroupSelect.value) {
+          path += "&group_id=" + encodeURIComponent(els.uploadGroupSelect.value);
+        }
+        const data = await request(path, {
+          method: "POST",
+          body: formData,
+        });
+        setMessage(
+          els.uploadMsg,
+          data.indexed ? "success" : "warn",
+          "上传成功：" + (data.indexed_message || "文件已处理")
+        );
+        els.fileInput.value = "";
+        await loadFiles();
+      } catch (err) {
+        setMessage(els.uploadMsg, "error", "上传失败：" + err.message);
+      } finally {
+        state.uploading = false;
+        els.uploadBtn.disabled = false;
+      }
+    }
+
+    async function createGroup() {
+      clearMessage(els.groupMsg);
+      const name = els.newGroupNameInput.value.trim();
+      if (!name) {
+        setMessage(els.groupMsg, "warn", "请输入分组名称。");
+        return;
+      }
+      try {
+        await request("/groups", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name }),
+        });
+        els.newGroupNameInput.value = "";
+        setMessage(els.groupMsg, "success", "分组创建成功。");
+        await loadGroups();
+      } catch (err) {
+        setMessage(els.groupMsg, "error", "创建分组失败：" + err.message);
+      }
+    }
+
+    async function renameFile(fileId) {
+      const file = state.files.find((f) => f.file_id === fileId);
+      if (!file) return;
+      const currentName = file.display_name || file.filename;
+      const nextName = window.prompt("请输入新的显示名称（留空则恢复原始文件名）", currentName);
+      if (nextName === null) return;
+
+      try {
+        await request("/files/" + encodeURIComponent(fileId) + "/rename", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ display_name: nextName.trim() || null }),
+        });
+        setMessage(els.filesMsg, "success", "重命名成功。");
+        await loadFiles();
+      } catch (err) {
+        setMessage(els.filesMsg, "error", "重命名失败：" + err.message);
+      }
+    }
+
+    async function updateFileGroup(fileId, groupId) {
+      try {
+        await request("/files/" + encodeURIComponent(fileId) + "/group", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ group_id: groupId || null }),
+        });
+        setMessage(els.filesMsg, "success", "分组更新成功。");
+        await loadFiles();
+      } catch (err) {
+        setMessage(els.filesMsg, "error", "分组更新失败：" + err.message);
+      }
+    }
+
+    async function deleteFile(fileId) {
+      const ok = window.confirm("确认删除该文件？删除后将从问答索引中移除。");
+      if (!ok) return;
+      try {
+        await request("/files/" + encodeURIComponent(fileId), { method: "DELETE" });
+        setMessage(els.filesMsg, "success", "文件已删除。");
+        await loadFiles();
+      } catch (err) {
+        setMessage(els.filesMsg, "error", "删除失败：" + err.message);
+      }
+    }
+
+    async function indexFile(fileId) {
+      if (!fileId || state.indexing.has(fileId)) return;
+      state.indexing.add(fileId);
+      renderFiles();
+      setMessage(els.filesMsg, "info", "正在索引文件...");
+
+      try {
+        await request("/index/" + encodeURIComponent(fileId), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chunk_size: 800,
+            overlap: 100,
+            chunk_method: "recursive",
+          }),
+        });
+        setMessage(els.filesMsg, "success", "索引完成。");
+        await loadFiles();
+      } catch (err) {
+        setMessage(els.filesMsg, "error", "索引失败：" + err.message);
+      } finally {
+        state.indexing.delete(fileId);
+        renderFiles();
+      }
+    }
+
+    async function askQuestion() {
+      if (state.asking) return;
+      clearMessage(els.askMsg);
+
+      const question = els.questionInput.value.trim();
+      if (!question) {
+        setMessage(els.askMsg, "warn", "请输入问题。");
+        return;
+      }
+
+      const scope = document.querySelector('input[name="scope"]:checked').value;
+      const payload = {
+        question,
+        retrieval_mode: "hybrid",
+        rerank_mode: "none",
+      };
+
+      if (scope === "single") {
+        const fileId = els.fileSelect.value;
+        if (!fileId) {
+          setMessage(els.askMsg, "warn", "请选择一个已可问答的文件。");
+          return;
+        }
+        payload.file_id = fileId;
+      }
+
+      state.asking = true;
+      els.askBtn.disabled = true;
+      setMessage(els.askMsg, "info", "正在检索并生成回答...");
+
+      try {
+        const endpoint = state.debugMode ? "/ask_debug" : "/ask";
+        const data = await request(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        renderAnswer(data, { showHits: state.debugMode });
+        pushHistory({
+          created_at: new Date().toISOString(),
+          mode: state.debugMode ? "debug" : "normal",
+          question: data.question,
+          answer: data.answer,
+          citations: Array.isArray(data.citations) ? data.citations : [],
+          hits: Array.isArray(data.hits) ? data.hits : [],
+        });
+        setMessage(els.askMsg, "success", "回答已生成。");
+      } catch (err) {
+        setMessage(els.askMsg, "error", "提问失败：" + err.message);
+      } finally {
+        state.asking = false;
+        els.askBtn.disabled = false;
+      }
+    }
+
+    function renderAnswer(data, options = {}) {
+      const showHits = !!options.showHits;
+      const question = data.question || "";
+      const answer = data.answer || "";
+      const citations = Array.isArray(data.citations) ? data.citations : [];
+      const hits = Array.isArray(data.hits) ? data.hits : [];
+
+      els.answerArea.innerHTML = `
+        <div><strong>问题：</strong>${escapeHtml(question)}</div>
+        <div style="margin-top:8px;"><strong>回答：</strong></div>
+        <div style="margin-top:6px; white-space: pre-wrap; line-height:1.6;">${escapeHtml(answer || "（空）")}</div>
+      `;
+
+      els.citationsArea.innerHTML = "";
+      if (!citations.length) {
+        els.citationsArea.innerHTML = '<div class="small">无 citations。</div>';
+      } else {
+        const title = document.createElement("div");
+        title.className = "small";
+        title.textContent = "Citations（" + citations.length + "）";
+        els.citationsArea.appendChild(title);
+
+        citations.forEach((c) => {
+          const div = document.createElement("div");
+          div.className = "citation";
+          const heading = document.createElement("div");
+          heading.innerHTML = `<strong>${escapeHtml(c.filename || "-")}</strong>`;
+
+          const meta = document.createElement("div");
+          meta.className = "small";
+          meta.textContent = "chunk_id=" + String(c.chunk_id) + " | " + String(c.start) + "-" + String(c.end);
+
+          div.appendChild(heading);
+          div.appendChild(meta);
+          appendCollapsibleText(div, c.text || "");
+          els.citationsArea.appendChild(div);
+        });
+      }
+
+      els.hitsArea.innerHTML = "";
+      if (!showHits) return;
+      if (!hits.length) {
+        els.hitsArea.innerHTML = '<div class="small">调试模式：无 hits。</div>';
+        return;
+      }
+
+      const hitTitle = document.createElement("div");
+      hitTitle.className = "small";
+      hitTitle.textContent = "Debug Hits（" + hits.length + "）";
+      els.hitsArea.appendChild(hitTitle);
+
+      hits.forEach((h) => {
+        const div = document.createElement("div");
+        div.className = "hit";
+        div.innerHTML = `
+          <div><strong>${escapeHtml(h.filename || "-")}</strong></div>
+          <div class="small">chunk_id=${escapeHtml(h.chunk_id)} | score=${escapeHtml(h.score)} | ${escapeHtml(h.start)}-${escapeHtml(h.end)}</div>
+          <pre>${escapeHtml(h.text || "")}</pre>
+        `;
+        els.hitsArea.appendChild(div);
+      });
+    }
+
+    function appendCollapsibleText(container, text, maxChars = 420) {
+      const content = String(text || "");
+      const pre = document.createElement("pre");
+
+      if (content.length <= maxChars) {
+        pre.textContent = content;
+        container.appendChild(pre);
+        return;
+      }
+
+      let expanded = false;
+      pre.textContent = content.slice(0, maxChars) + "...";
+      container.appendChild(pre);
+
+      const toggleBtn = document.createElement("button");
+      toggleBtn.type = "button";
+      toggleBtn.className = "link-button";
+      toggleBtn.textContent = "展开全文";
+      toggleBtn.addEventListener("click", () => {
+        expanded = !expanded;
+        pre.textContent = expanded ? content : (content.slice(0, maxChars) + "...");
+        toggleBtn.textContent = expanded ? "收起" : "展开全文";
+      });
+      container.appendChild(toggleBtn);
+    }
+
+    function onScopeChange() {
+      const scope = document.querySelector('input[name="scope"]:checked').value;
+      els.fileSelect.disabled = scope !== "single";
+    }
+
+    function saveApiBase() {
+      state.apiBase = els.apiBaseInput.value.trim();
+      localStorage.setItem("citerag_api_base", state.apiBase);
+      setMessage(
+        els.baseMsg,
+        "success",
+        state.apiBase ? ("已保存 API 地址：" + state.apiBase) : "已切换为同源地址。"
+      );
+      loadGroups();
+      loadFiles();
+    }
+
+    function onReadyOnlyChange() {
+      state.showReadyOnly = !!els.readyOnlyInput.checked;
+      renderFiles();
+    }
+
+    function onGroupFilterChange() {
+      state.selectedGroupId = els.groupFilterSelect.value || "";
+      loadFiles();
+    }
+
+    function onDebugModeChange() {
+      state.debugMode = !!els.debugModeInput.checked;
+    }
+
+    function clearHistory() {
+      state.qaHistory = [];
+      saveHistoryToStorage();
+      renderHistory();
+      setMessage(els.askMsg, "info", "历史记录已清空。");
+    }
+
+    function bindEvents() {
+      els.saveBaseBtn.addEventListener("click", saveApiBase);
+      els.createGroupBtn.addEventListener("click", createGroup);
+      els.uploadBtn.addEventListener("click", uploadFile);
+      els.groupFilterSelect.addEventListener("change", onGroupFilterChange);
+      els.readyOnlyInput.addEventListener("change", onReadyOnlyChange);
+      els.refreshFilesBtn.addEventListener("click", loadFiles);
+      els.debugModeInput.addEventListener("change", onDebugModeChange);
+      els.askBtn.addEventListener("click", askQuestion);
+      els.clearHistoryBtn.addEventListener("click", clearHistory);
+      document.querySelectorAll('input[name="scope"]').forEach((radio) => {
+        radio.addEventListener("change", onScopeChange);
+      });
+    }
+
+    async function init() {
+      els.apiBaseInput.value = state.apiBase;
+      bindEvents();
+      onScopeChange();
+      onDebugModeChange();
+      renderHistory();
+      await loadGroups();
+      await loadFiles();
+    }
+
+    init();
+  </script>
+</body>
+</html>
