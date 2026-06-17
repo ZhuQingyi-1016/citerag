@@ -19,7 +19,6 @@ from app.repositories.file_repository import FileRepository
 from app.repositories.index_repository import InMemoryIndexRepository
 from app.repositories.sqlite_repository import SQLiteRepository
 
-
 tracer = trace.get_tracer(__name__)
 
 

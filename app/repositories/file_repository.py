@@ -10,7 +10,6 @@ from fastapi import UploadFile
 from app.core.exceptions import DuplicateFileIdError, FileNotFoundError
 from app.settings import STORAGE_DIR
 
-
 _SAFE_FILENAME_PATTERN = re.compile(r"[^A-Za-z0-9._()\-\u4e00-\u9fff]+")
 
 

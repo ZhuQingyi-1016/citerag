@@ -44,7 +44,11 @@ def build_prompt(
     context_blocks = [f"[chunk_id={h['chunk_id']}]\n{h['text']}" for h in hits]
     context = "\n\n".join(context_blocks)
 
-    language_instruction = "Answer in Chinese." if _looks_chinese_question(question) else "Answer in the same language as the question."
+    language_instruction = (
+    "请使用与问题相同的语言回答。"
+    if _looks_chinese_question(question)
+    else "Answer in the same language as the question."
+    )
     process_instruction = ""
     if question_type == "process":
         process_instruction = (

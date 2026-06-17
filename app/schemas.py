@@ -19,8 +19,14 @@ class UploadResponse(BaseModel):
     group_id: str | None = Field(None, description="Optional document group id.")
     size_bytes: int = Field(..., ge=0, description="Uploaded file size in bytes.")
     indexed: bool = Field(False, description="Whether auto-indexing succeeded.")
-    indexed_status: str | None = Field(None, description="Indexing status, such as indexed or failed.")
-    indexed_message: str | None = Field(None, description="Optional indexing message or error detail.")
+    indexed_status: str | None = Field(
+        None,
+        description="Indexing status, such as indexed or failed.",
+    )
+    indexed_message: str | None = Field(
+        None,
+        description="Optional indexing message or error detail.",
+    )
 
 
 class FileItem(BaseModel):
@@ -80,7 +86,10 @@ class DeleteFileCleanupItem(BaseModel):
     bm25_removed: bool = Field(..., description="Whether BM25 in-memory index was removed.")
     vector_removed: bool = Field(..., description="Whether vector index entries were removed.")
     chunks_removed: bool = Field(..., description="Whether stored chunks were removed.")
-    index_status_removed: bool = Field(..., description="Whether index status metadata was removed.")
+    index_status_removed: bool = Field(
+        ...,
+        description="Whether index status metadata was removed.",
+    )
 
 
 class DeleteFileResponse(BaseModel):
@@ -95,13 +104,19 @@ class IndexRequest(BaseModel):
         800,
         ge=200,
         le=3000,
-        description="Maximum characters per chunk before overlap. Larger chunks preserve context but may reduce retrieval precision.",
+        description=(
+            "Maximum characters per chunk before overlap. Larger chunks "
+            "preserve context but may reduce retrieval precision."
+        ),
     )
     overlap: int = Field(
         100,
         ge=0,
         le=800,
-        description="Maximum overlap characters between adjacent chunks. Must be smaller than chunk_size.",
+        description=(
+            "Maximum overlap characters between adjacent chunks. "
+            "Must be smaller than chunk_size."
+        ),
     )
     chunk_method: Literal["fixed", "recursive"] = Field(
         "recursive",
@@ -192,7 +207,10 @@ class AskRequest(BaseModel):
         3,
         ge=1,
         le=10,
-        description="Final number of chunks passed to the generator after retrieval and optional rerank.",
+        description=(
+            "Final number of chunks passed to the generator after retrieval "
+            "and optional rerank."
+        ),
     )
     retrieve_top_k: int = Field(
         10,
@@ -227,7 +245,10 @@ class AskDebugResponse(BaseModel):
     answer: str
     citations: list[CitationItem]
     hits: list[HitItem]
-    question_type: str | None = Field(None, description="Detected question type used for retrieval tuning.")
+    question_type: str | None = Field(
+        None,
+        description="Detected question type used for retrieval tuning.",
+    )
     effective_retrieve_top_k: int | None = Field(
         None,
         description="Actual first-stage retrieval count after question-type adjustment.",

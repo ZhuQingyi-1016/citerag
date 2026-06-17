@@ -330,7 +330,10 @@ class SQLiteRepository:
                 (file_id,),
             ).fetchone()
             if row is None:
-                raise ValueError(f"cannot update index status for missing or deleted file: {file_id}")
+                raise ValueError(
+                    "cannot update index status for missing or deleted file: "
+                     f"{file_id}"
+                )
             conn.execute(
                 """
                 INSERT INTO index_status (file_id, bm25_indexed, vector_indexed, indexed_at)
@@ -521,7 +524,12 @@ class SQLiteRepository:
                 ).fetchone()
             return dict(row) if row else None
 
-    def rename_file(self, file_id: str, display_name: str | None, updated_at: str) -> dict[str, Any] | None:
+    def rename_file(
+        self,
+        file_id: str,
+        display_name: str | None,
+        updated_at: str,
+    ) -> dict[str, Any] | None:
         with self._connect() as conn:
             conn.execute(
                 """
@@ -536,7 +544,12 @@ class SQLiteRepository:
             conn.commit()
         return self.get_file(file_id=file_id, include_deleted=False)
 
-    def update_file_group(self, file_id: str, group_id: str | None, updated_at: str) -> dict[str, Any] | None:
+    def update_file_group(
+        self,
+        file_id: str,
+        group_id: str | None,
+        updated_at: str,
+    ) -> dict[str, Any] | None:
         with self._connect() as conn:
             conn.execute(
                 """

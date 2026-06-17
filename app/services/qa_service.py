@@ -18,7 +18,6 @@ from app.schemas import AskDebugResponse, AskRequest, AskResponse, CitationItem,
 from app.services.index_service import IndexService
 from app.services.retrieval_service import RetrievalService
 
-
 tracer = trace.get_tracer(__name__)
 
 
