@@ -45,7 +45,7 @@ def build_prompt(
     context = "\n\n".join(context_blocks)
 
     language_instruction = (
-    "请使用与问题相同的语言回答。"
+    "Answer in Chinese."
     if _looks_chinese_question(question)
     else "Answer in the same language as the question."
     )

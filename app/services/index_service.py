@@ -31,30 +31,25 @@ class Chunk:
 
 
 def simple_tokenize(text: str) -> list[str]:
-    """Tokenize mixed Chinese/English technical text for BM25.
+    normalized = text.lower()
+    english_tokens = re.findall(r"[a-z0-9]+", normalized)
 
-    English is tokenized by words. Chinese is represented by both character
-    unigrams and short character n-grams so queries such as "缺点" can match
-    longer chunks that contain "主要缺点" or "缺点包括".
-    """
-    text = text.lower()
-    raw_tokens = re.findall(r"[a-zA-Z0-9_+\-{}<>/:.]+|[\u4e00-\u9fff]+", text)
+    chinese_chars = re.findall(r"[\u4e00-\u9fff]", normalized)
+    chinese_tokens: list[str] = []
+    if chinese_chars:
+        chinese_text = "".join(chinese_chars)
+        chinese_tokens.append(chinese_text)
+        chinese_tokens.extend(chinese_chars)
+        chinese_tokens.extend(
+            chinese_text[i : i + 2]
+            for i in range(max(len(chinese_text) - 1, 0))
+        )
+        chinese_tokens.extend(
+            chinese_text[i : i + 3]
+            for i in range(max(len(chinese_text) - 2, 0))
+        )
 
-    tokens: list[str] = []
-    for token in raw_tokens:
-        token = token.strip()
-        if not token:
-            continue
-
-        if re.fullmatch(r"[\u4e00-\u9fff]+", token):
-            tokens.append(token)
-            tokens.extend(token[i : i + 1] for i in range(len(token)))
-            tokens.extend(token[i : i + 2] for i in range(max(0, len(token) - 1)))
-            tokens.extend(token[i : i + 3] for i in range(max(0, len(token) - 2)))
-        else:
-            tokens.append(token)
-
-    return tokens
+    return english_tokens + chinese_tokens
 
 
 def normalize_document_text(text: str) -> str:
@@ -281,16 +276,18 @@ class BM25Index:
         if not q_tokens:
             return []
 
+        q_token_set = set(q_tokens)
         scores = self.bm25.get_scores(q_tokens)
         ranked = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)
 
         hits = []
         for i in ranked:
             score = float(scores[i])
-            if score <= 0:
+            c = self.chunks[i]
+            has_lexical_overlap = bool(q_token_set & set(self.tokenized[i]))
+            if score <= 0 and not has_lexical_overlap:
                 continue
 
-            c = self.chunks[i]
             hits.append(
                 {
                     "file_id": self.file_id,
