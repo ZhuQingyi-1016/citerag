@@ -19,6 +19,19 @@ from app.services.file_service import FileService
 router = APIRouter(tags=["files"])
 
 
+def _value_error_to_http_exception(error: ValueError) -> HTTPException:
+    msg = str(error)
+    lowered = msg.lower()
+
+    if "not found" in lowered:
+        return HTTPException(status_code=404, detail=msg)
+    if "already exists" in lowered:
+        return HTTPException(status_code=409, detail=msg)
+    if "empty" in lowered or "unsupported" in lowered or "invalid" in lowered:
+        return HTTPException(status_code=400, detail=msg)
+    return HTTPException(status_code=400, detail=msg)
+
+
 @router.post("/upload", response_model=UploadResponse)
 def upload(
     file: UploadFile = File(...),
@@ -35,7 +48,7 @@ def upload(
     try:
         return file_service.upload_file(file=file, auto_index=auto_index, group_id=group_id)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise _value_error_to_http_exception(e)
 
 
 @router.get("/files", response_model=FilesResponse)
@@ -65,10 +78,7 @@ def create_group(
     try:
         return file_service.create_group(name=req.name)
     except ValueError as e:
-        msg = str(e)
-        if "already exists" in msg:
-            raise HTTPException(status_code=409, detail=msg)
-        raise HTTPException(status_code=400, detail=msg)
+        raise _value_error_to_http_exception(e)
 
 
 @router.patch("/files/{file_id}/rename", response_model=FileManageResponse)
@@ -80,10 +90,7 @@ def rename_file(
     try:
         return file_service.rename_file(file_id=file_id, display_name=req.display_name)
     except ValueError as e:
-        msg = str(e)
-        if "not found" in msg:
-            raise HTTPException(status_code=404, detail=msg)
-        raise HTTPException(status_code=400, detail=msg)
+        raise _value_error_to_http_exception(e)
 
 
 @router.patch("/files/{file_id}/group", response_model=FileManageResponse)
@@ -95,10 +102,7 @@ def update_file_group(
     try:
         return file_service.move_file_group(file_id=file_id, group_id=req.group_id)
     except ValueError as e:
-        msg = str(e)
-        if "not found" in msg:
-            raise HTTPException(status_code=404, detail=msg)
-        raise HTTPException(status_code=400, detail=msg)
+        raise _value_error_to_http_exception(e)
 
 
 @router.delete("/files/{file_id}", response_model=DeleteFileResponse)
@@ -109,7 +113,4 @@ def delete_file(
     try:
         return file_service.delete_file(file_id=file_id)
     except ValueError as e:
-        msg = str(e)
-        if "not found" in msg:
-            raise HTTPException(status_code=404, detail=msg)
-        raise HTTPException(status_code=400, detail=msg)
+        raise _value_error_to_http_exception(e)

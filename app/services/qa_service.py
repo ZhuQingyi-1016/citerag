@@ -18,7 +18,146 @@ from app.schemas import AskDebugResponse, AskRequest, AskResponse, CitationItem,
 from app.services.index_service import IndexService
 from app.services.retrieval_service import RetrievalService
 
+
 tracer = trace.get_tracer(__name__)
+
+
+def _normalize_snippet_text(text: str) -> str:
+    if not text:
+        return ""
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    text = re.sub(r"([A-Za-z])-\s*\n\s*([A-Za-z])", r"\1-\2", text)
+    text = re.sub(r"([A-Za-z])\s*\n\s*(\d)", r"\1\2", text)
+    text = re.sub(r"(\d)\s*\n\s*([A-Za-zμµ])", r"\1 \2", text)
+    text = re.sub(r"([μµ])\s*\n\s*([A-Za-z])", r"\1\2", text)
+    text = re.sub(r"\s+", " ", text)
+    text = re.sub(r"([\u4e00-\u9fff])([A-Za-z0-9])", r"\1 \2", text)
+    text = re.sub(r"([A-Za-z0-9])([\u4e00-\u9fff])", r"\1 \2", text)
+    return text.strip()
+
+
+def _split_snippet_sentences(text: str) -> list[str]:
+    text = _normalize_snippet_text(text)
+    if not text:
+        return []
+    parts = re.split(
+        r"(?<=[。！？!?；;])\s*|(?<=[.!?])\s+(?=[A-Z0-9])",
+        text,
+    )
+    return [p.strip() for p in parts if p.strip()]
+
+
+def _extract_query_terms(question: str) -> list[str]:
+    terms = re.findall(
+        r"[\u4e00-\u9fff]{2,}|[A-Za-z][A-Za-z0-9_+\-]{1,}|\d+(?:\.\d+)?",
+        question or "",
+    )
+    stopwords = {
+        "what",
+        "which",
+        "where",
+        "when",
+        "how",
+        "the",
+        "and",
+        "or",
+        "this",
+        "that",
+        "有哪些",
+        "什么",
+        "为什么",
+        "如何",
+        "是否",
+        "这个",
+        "项目",
+        "文档",
+        "资料",
+        "介绍",
+        "说明",
+    }
+    return [t for t in terms if t.lower() not in stopwords]
+
+
+def _trim_to_sentence_boundary(text: str, max_chars: int) -> str:
+    text = _normalize_snippet_text(text)
+    if len(text) <= max_chars:
+        return text
+
+    cut = text[:max_chars].rstrip()
+    punct_positions = [
+        cut.rfind("。"),
+        cut.rfind("！"),
+        cut.rfind("？"),
+        cut.rfind("；"),
+        cut.rfind("."),
+        cut.rfind("!"),
+        cut.rfind("?"),
+        cut.rfind(";"),
+    ]
+    last_punct = max(punct_positions)
+    if last_punct >= int(max_chars * 0.55):
+        return cut[: last_punct + 1].strip()
+    return cut + "..."
+
+
+def make_evidence_snippet(text: str, question: str, max_chars: int = 500) -> str:
+    """Create a user-facing citation snippet from a retrieved chunk.
+
+    Hits should remain close to the retrieved chunk for debugging. Citations are
+    user-facing evidence, so they should be shorter, cleaner, and preferably
+    start at a sentence boundary.
+    """
+    sentences = _split_snippet_sentences(text)
+    if not sentences:
+        return _trim_to_sentence_boundary(text, max_chars)
+
+    query_terms = _extract_query_terms(question)
+    best_idx = 0
+    best_score = -1
+
+    for idx, sentence in enumerate(sentences):
+        normalized_sentence = sentence.lower()
+        score = sum(1 for term in query_terms if term.lower() in normalized_sentence)
+        if score > best_score:
+            best_score = score
+            best_idx = idx
+
+    start_idx = max(0, best_idx - 1)
+    end_idx = min(len(sentences), best_idx + 2)
+    snippet = " ".join(sentences[start_idx:end_idx]).strip()
+
+    if not snippet:
+        snippet = sentences[0]
+
+    return _trim_to_sentence_boundary(snippet, max_chars)
+
+
+# --- Additions for refusal and chunk ref helpers ---
+def _is_refusal_answer(answer: str) -> bool:
+    """Return True when the generated answer is a no-answer/refusal response."""
+    normalized = _normalize_snippet_text(answer).lower()
+    if not normalized:
+        return True
+
+    refusal_patterns = [
+        "无法回答",
+        "无法确定",
+        "没有检索到",
+        "没有相关内容",
+        "未找到相关",
+        "资料中没有",
+        "文档中没有",
+        "not enough information",
+        "no relevant information",
+        "cannot answer",
+        "can't answer",
+        "unable to answer",
+    ]
+    return any(pattern in normalized for pattern in refusal_patterns)
+
+
+def _chunk_ref_label(hit: dict) -> str:
+    return f"{hit.get('file_id', '')}:{hit.get('chunk_id', '')}"
 
 
 class QAService:
@@ -54,7 +193,7 @@ class QAService:
 
     def _run_ask(self, req: AskRequest):
         start = now_perf()
-        retrieval_mode = req.retrieval_mode
+        retrieval_mode = req.retrieval_mode.lower().strip()
 
         try:
             with tracer.start_as_current_span("qa.run_ask") as span:
@@ -143,13 +282,13 @@ class QAService:
                             )
 
                     retrieval_ms = elapsed_ms(retrieval_start)
-                    initial_hit_chunk_ids = [h["chunk_id"] for h in hits]
+                    initial_hit_chunk_refs = [_chunk_ref_label(h) for h in hits]
 
                     retrieval_span.set_attribute("citerag.hits_count", len(hits))
                     retrieval_span.set_attribute("citerag.retrieval_ms", retrieval_ms)
                     retrieval_span.set_attribute(
-                        "citerag.top_hit_chunk_ids",
-                        ",".join(str(cid) for cid in initial_hit_chunk_ids),
+                        "citerag.top_hit_chunk_refs",
+                        ",".join(initial_hit_chunk_refs),
                     )
 
                 if not hits:
@@ -165,8 +304,8 @@ class QAService:
                     span.set_attribute("citerag.rerank_mode", req.rerank_mode)
                     span.set_attribute("citerag.retrieve_top_k", effective_retrieve_top_k)
                     span.set_attribute("citerag.rerank_ms", 0.0)
-                    span.set_attribute("citerag.top_hit_chunk_ids", "")
-                    span.set_attribute("citerag.cited_chunk_ids", "")
+                    span.set_attribute("citerag.top_hit_chunk_refs", "")
+                    span.set_attribute("citerag.cited_chunk_refs", "")
                     span.set_attribute("citerag.prompt_tokens", 0)
                     span.set_attribute("citerag.completion_tokens", 0)
                     span.set_attribute("citerag.total_tokens", 0)
@@ -194,8 +333,9 @@ class QAService:
                         hits_count=0,
                         citations_count=0,
                         used_chunk_ids_count=0,
-                        top_hit_chunk_ids=[],
+                        top_hit_chunk_refs=[],
                         cited_chunk_ids=[],
+                        cited_chunk_refs=[],
                         retrieval_ms=retrieval_ms,
                         generation_ms=0.0,
                         duration_ms=duration_ms,
@@ -267,23 +407,45 @@ class QAService:
                     total_tokens = usage.get("total_tokens", 0)
                     estimated_cost_usd = usage.get("estimated_cost_usd", 0.0)
 
-                    used_chunk_ids = llm_result.get("used_chunk_ids", [])
-                    used_chunk_refs = llm_result.get("used_chunk_refs", [])
+                    answer = llm_result.get("answer", "")
+                    used_chunk_ids = llm_result.get("used_chunk_ids", []) or []
+                    used_chunk_refs = llm_result.get("used_chunk_refs", []) or []
+
+                    # Backward-compatible fallback: old generators only return
+                    # chunk_id. Keep file_id when possible to avoid collisions
+                    # across multiple files.
                     if not used_chunk_refs and used_chunk_ids:
-                        # Backward-compatible fallback: old generators only return chunk_id.
+                        used_id_set = {int(cid) for cid in used_chunk_ids}
                         used_chunk_refs = [
                             {
                                 "file_id": h["file_id"],
                                 "chunk_id": h["chunk_id"],
                             }
                             for h in hits
-                            if h["chunk_id"] in used_chunk_ids
+                            if int(h["chunk_id"]) in used_id_set
                         ]
+
                     used_ref_set = {
                         (ref["file_id"], int(ref["chunk_id"]))
                         for ref in used_chunk_refs
                         if "file_id" in ref and "chunk_id" in ref
                     }
+
+                    # If the generator produced an answer but did not expose
+                    # used refs, cite the final reranked hits. This prevents a
+                    # misleading answer-without-citations state while still
+                    # keeping refusals citation-free.
+                    if not used_ref_set and hits and not _is_refusal_answer(answer):
+                        used_ref_set = {
+                            (h["file_id"], int(h["chunk_id"]))
+                            for h in hits[: req.top_k]
+                        }
+                        used_chunk_refs = [
+                            {"file_id": file_id, "chunk_id": chunk_id}
+                            for file_id, chunk_id in sorted(used_ref_set)
+                        ]
+                        used_chunk_ids = [chunk_id for _, chunk_id in sorted(used_ref_set)]
+
                     generation_ms = elapsed_ms(generation_start)
 
                     generation_span.set_attribute(
@@ -297,6 +459,12 @@ class QAService:
                     generation_span.set_attribute(
                         "citerag.used_chunk_ids",
                         ",".join(str(cid) for cid in used_chunk_ids),
+                    )
+                    generation_span.set_attribute(
+                        "citerag.used_chunk_refs",
+                        ",".join(
+                            f"{file_id}:{chunk_id}" for file_id, chunk_id in sorted(used_ref_set)
+                        ),
                     )
                     generation_span.set_attribute(
                         "citerag.generation_ms", generation_ms
@@ -338,17 +506,30 @@ class QAService:
 
                 citations = [
                     CitationItem(
+                        file_id=h["file_id"],
                         filename=h["filename"],
                         chunk_id=h["chunk_id"],
+                        source_ref=_chunk_ref_label(h),
                         start=h["start"],
                         end=h["end"],
-                        text=h["text"],
+                        text=make_evidence_snippet(h["text"], req.question),
                     )
                     for h in used_hits
                 ]
 
-                hit_items = [HitItem(**h) for h in hits_with_display]
+                hit_items = [
+                    HitItem(
+                        **h,
+                        source_ref=_chunk_ref_label(h),
+                    )
+                    for h in hits_with_display
+                ]
+                cited_chunk_refs = [
+                    f"{h['file_id']}:{h['chunk_id']}"
+                    for h in used_hits
+                ]
                 cited_chunk_ids = [c.chunk_id for c in citations]
+                reranked_hit_chunk_refs = [_chunk_ref_label(h) for h in hits]
 
                 span.set_attribute("citerag.hits_count", len(hits))
                 span.set_attribute("citerag.citations_count", len(citations))
@@ -359,18 +540,17 @@ class QAService:
                 span.set_attribute("citerag.retrieve_top_k", effective_retrieve_top_k)
                 span.set_attribute("citerag.rerank_ms", rerank_ms)
                 span.set_attribute(
-                    "citerag.top_hit_chunk_ids",
-                    ",".join(str(cid) for cid in reranked_hit_chunk_ids),
+                    "citerag.cited_chunk_refs",
+                    ",".join(cited_chunk_refs),
                 )
                 span.set_attribute(
-                    "citerag.top_hit_chunk_ids",
-                    ",".join(str(cid) for cid in reranked_hit_chunk_ids),
+                    "citerag.top_hit_chunk_refs",
+                    ",".join(reranked_hit_chunk_refs),
                 )
                 span.set_attribute("citerag.prompt_tokens", prompt_tokens)
                 span.set_attribute("citerag.completion_tokens", completion_tokens)
                 span.set_attribute("citerag.total_tokens", total_tokens)
                 span.set_attribute("citerag.estimated_cost_usd", estimated_cost_usd)
-    
 
                 duration_ms = elapsed_ms(start)
                 ASK_COUNT.labels(status="ok", retrieval_mode=retrieval_mode).inc()
@@ -397,7 +577,9 @@ class QAService:
                     citations_count=len(citations),
                     used_chunk_ids_count=len(used_chunk_ids),
                     top_hit_chunk_ids=reranked_hit_chunk_ids,
+                    top_hit_chunk_refs=reranked_hit_chunk_refs,
                     cited_chunk_ids=cited_chunk_ids,
+                    cited_chunk_refs=cited_chunk_refs,
                     retrieval_ms=retrieval_ms,
                     generation_ms=generation_ms,
                     duration_ms=duration_ms,
@@ -408,13 +590,15 @@ class QAService:
                     estimated_cost_usd=estimated_cost_usd,
                 )
 
-                return llm_result["answer"], citations, hit_items, question_type, effective_retrieve_top_k
+                return answer, citations, hit_items, question_type, effective_retrieve_top_k
 
         except HTTPException:
             raise
         except Exception as e:
-            span.record_exception(e)
-            span.set_attribute("citerag.error", True)
+            current_span = trace.get_current_span()
+            if current_span is not None:
+                current_span.record_exception(e)
+                current_span.set_attribute("citerag.error", True)
 
             duration_ms = elapsed_ms(start)
             ASK_COUNT.labels(status="failed", retrieval_mode=retrieval_mode).inc()

@@ -19,7 +19,9 @@ from app.repositories.file_repository import FileRepository
 from app.repositories.index_repository import InMemoryIndexRepository
 from app.repositories.sqlite_repository import SQLiteRepository
 
+
 tracer = trace.get_tracer(__name__)
+
 
 @dataclass
 class Chunk:
@@ -30,13 +32,175 @@ class Chunk:
 
 
 def simple_tokenize(text: str) -> list[str]:
-    text = text.lower()
-    pattern = r"""
-        [a-zA-Z0-9_\-{}<>/:.]+   |
-        [\u4e00-\u9fff]+
+    """Tokenize mixed Chinese/English technical text for BM25.
+
+    English is tokenized by words. Chinese is represented by both character
+    unigrams and short character n-grams so queries such as "缺点" can match
+    longer chunks that contain "主要缺点" or "缺点包括".
     """
-    tokens = re.findall(pattern, text, re.VERBOSE)
-    return [tok.strip() for tok in tokens if tok.strip()]
+    text = text.lower()
+    raw_tokens = re.findall(r"[a-zA-Z0-9_+\-{}<>/:.]+|[\u4e00-\u9fff]+", text)
+
+    tokens: list[str] = []
+    for token in raw_tokens:
+        token = token.strip()
+        if not token:
+            continue
+
+        if re.fullmatch(r"[\u4e00-\u9fff]+", token):
+            tokens.append(token)
+            tokens.extend(token[i : i + 1] for i in range(len(token)))
+            tokens.extend(token[i : i + 2] for i in range(max(0, len(token) - 1)))
+            tokens.extend(token[i : i + 3] for i in range(max(0, len(token) - 2)))
+        else:
+            tokens.append(token)
+
+    return tokens
+
+
+def normalize_document_text(text: str) -> str:
+    """Clean parser output before chunking.
+
+    PDF/DOCX extraction often leaves artificial line breaks, split chemical
+    formulas such as CO\n2, broken units such as μ\nm, and hyphenated words
+    across lines. Cleaning here improves both retrieval chunks and citations.
+    """
+    if not text:
+        return ""
+
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+
+    # Keep paragraph boundaries, but normalize excessive blank lines.
+    text = re.sub(r"\n{3,}", "\n\n", text)
+
+    # Restore hyphenated English words split by PDF line breaks:
+    # de-\nenergized -> de-energized
+    text = re.sub(r"([A-Za-z])-\s*\n\s*([A-Za-z])", r"\1-\2", text)
+
+    # Restore common technical tokens split across lines:
+    # CO\n2 -> CO2, 10.6 μ\nm -> 10.6 μm
+    text = re.sub(r"([A-Za-z])\s*\n\s*(\d)", r"\1\2", text)
+    text = re.sub(r"(\d)\s*\n\s*([A-Za-zμµ])", r"\1 \2", text)
+    text = re.sub(r"([μµ])\s*\n\s*([A-Za-z])", r"\1\2", text)
+
+    # Merge single line breaks inside a paragraph. Keep blank lines as
+    # paragraph separators.
+    text = re.sub(r"(?<!\n)\n(?!\n)", " ", text)
+
+    # Normalize spaces and add light spacing between CJK and ASCII tokens.
+    text = re.sub(r"[ \t]+", " ", text)
+    text = re.sub(r"([\u4e00-\u9fff])([A-Za-z0-9])", r"\1 \2", text)
+    text = re.sub(r"([A-Za-z0-9])([\u4e00-\u9fff])", r"\1 \2", text)
+
+    return text.strip()
+
+
+def _split_long_text_by_sentence(text: str, chunk_size: int) -> list[str]:
+    """Split long text into sentence-like units for Chinese and English."""
+    if len(text) <= chunk_size:
+        return [text]
+
+    # Split after common sentence punctuation. The English rule avoids
+    # splitting decimals by requiring a following space and capital/number.
+    sentences = re.split(
+        r"(?<=[。！？!?；;])\s*|(?<=[.!?])\s+(?=[A-Z0-9])",
+        text,
+    )
+    sentences = [s.strip() for s in sentences if s.strip()]
+
+    if len(sentences) <= 1:
+        return [text[i : i + chunk_size] for i in range(0, len(text), chunk_size)]
+
+    units: list[str] = []
+    for sentence in sentences:
+        if len(sentence) <= chunk_size:
+            units.append(sentence)
+        else:
+            units.extend(
+                sentence[i : i + chunk_size]
+                for i in range(0, len(sentence), chunk_size)
+            )
+    return units
+
+
+def _sentence_aligned_tail(text: str, overlap: int) -> str:
+    """Return overlap text while avoiding starts in the middle of words."""
+    if overlap <= 0 or len(text) <= overlap:
+        return text.strip()
+
+    tail = text[-overlap:]
+
+    # Prefer starting after a sentence boundary inside the overlap window.
+    boundary_matches = list(re.finditer(r"[。！？!?；;.]\s+", tail))
+    for match in boundary_matches:
+        candidate = tail[match.end() :].strip()
+        if len(candidate) >= 30:
+            return candidate
+
+    # Otherwise start at a whitespace boundary.
+    whitespace = re.search(r"\s+", tail)
+    if whitespace and whitespace.end() < len(tail) - 20:
+        return tail[whitespace.end() :].strip()
+
+    return tail.strip()
+
+
+def _build_chunks_from_pieces(
+    text: str,
+    pieces: list[str],
+    chunk_size: int,
+    overlap: int,
+) -> list[Chunk]:
+    chunks: list[Chunk] = []
+    current = ""
+
+    for piece in pieces:
+        piece = piece.strip()
+        if not piece:
+            continue
+
+        if not current:
+            current = piece
+            continue
+
+        separator = "\n\n" if "\n" in current or "\n" in piece else " "
+        candidate = f"{current}{separator}{piece}".strip()
+
+        if len(candidate) <= chunk_size:
+            current = candidate
+        else:
+            chunks.append(Chunk(chunk_id=len(chunks), start=0, end=0, text=current.strip()))
+            tail = _sentence_aligned_tail(current, overlap)
+            if tail and len(f"{tail} {piece}".strip()) <= chunk_size:
+                current = f"{tail} {piece}".strip()
+            else:
+                current = piece
+
+    if current.strip():
+        chunks.append(Chunk(chunk_id=len(chunks), start=0, end=0, text=current.strip()))
+
+    # Map chunk text back to normalized-document offsets where possible.
+    cursor = 0
+    mapped: list[Chunk] = []
+    for chunk in chunks:
+        probe = chunk.text[: min(80, len(chunk.text))]
+        start = text.find(probe, cursor) if probe else -1
+        if start == -1 and probe:
+            start = text.find(probe)
+        if start == -1:
+            start = cursor
+        end = min(len(text), start + len(chunk.text))
+        mapped.append(
+            Chunk(
+                chunk_id=len(mapped),
+                start=start,
+                end=end,
+                text=chunk.text,
+            )
+        )
+        cursor = max(cursor, end)
+
+    return mapped
 
 
 def chunk_text(text: str, chunk_size: int = 800, overlap: int = 100) -> list[Chunk]:
@@ -47,21 +211,21 @@ def chunk_text(text: str, chunk_size: int = 800, overlap: int = 100) -> list[Chu
     if overlap >= chunk_size:
         raise ValueError("overlap must be < chunk_size")
 
-    chunks: list[Chunk] = []
-    n = len(text)
-    start = 0
-    chunk_id = 0
+    text = normalize_document_text(text)
+    if not text:
+        return []
 
-    while start < n:
-        end = min(start + chunk_size, n)
-        chunk = text[start:end]
-        chunks.append(Chunk(chunk_id=chunk_id, start=start, end=end, text=chunk))
-        chunk_id += 1
-        if end == n:
-            break
-        start = end - overlap
+    paragraphs = [p.strip() for p in re.split(r"\n\s*\n", text) if p.strip()]
+    pieces: list[str] = []
+    for paragraph in paragraphs:
+        pieces.extend(_split_long_text_by_sentence(paragraph, chunk_size))
 
-    return chunks
+    return _build_chunks_from_pieces(
+        text=text,
+        pieces=pieces,
+        chunk_size=chunk_size,
+        overlap=overlap,
+    )
 
 
 def chunk_text_recursive(
@@ -76,101 +240,29 @@ def chunk_text_recursive(
     if overlap >= chunk_size:
         raise ValueError("overlap must be < chunk_size")
 
-    separators = [
-        "\n\n",
-        "\n",
-        "。", ". ",
-        "；", ";",
-        "：", ":",
-        "，", ",",
-        "|",
-        "\t",
-        " ",
-        "",
-    ]
+    text = normalize_document_text(text)
+    if not text:
+        return []
 
-    def split_recursively(piece: str, seps: list[str]) -> list[str]:
-        if len(piece) <= chunk_size:
-            return [piece]
+    # Recursive mode should prioritize natural document boundaries instead of
+    # raw character offsets, so citations do not start halfway through a
+    # sentence. Split by paragraphs first, then by sentence-like units for
+    # long paragraphs.
+    paragraphs = [p.strip() for p in re.split(r"\n\s*\n", text) if p.strip()]
+    pieces: list[str] = []
 
-        if not seps:
-            return [piece[i:i + chunk_size] for i in range(0, len(piece), chunk_size)]
+    for paragraph in paragraphs:
+        if len(paragraph) <= chunk_size:
+            pieces.append(paragraph)
+        else:
+            pieces.extend(_split_long_text_by_sentence(paragraph, chunk_size))
 
-        sep = seps[0]
-
-        if sep == "":
-            return [piece[i:i + chunk_size] for i in range(0, len(piece), chunk_size)]
-
-        parts = piece.split(sep)
-
-        if len(parts) == 1:
-            return split_recursively(piece, seps[1:])
-
-        merged = []
-        current = ""
-
-        for part in parts:
-            candidate = part if not current else current + sep + part
-            if len(candidate) <= chunk_size:
-                current = candidate
-            else:
-                if current:
-                    merged.append(current)
-                if len(part) <= chunk_size:
-                    current = part
-                else:
-                    merged.extend(split_recursively(part, seps[1:]))
-                    current = ""
-
-        if current:
-            merged.append(current)
-
-        return merged
-
-    pieces = split_recursively(text, separators)
-
-    chunks: list[Chunk] = []
-    cursor = 0
-
-    for piece in pieces:
-        piece = piece.strip()
-        if not piece:
-            continue
-
-        start = text.find(piece, cursor)
-        if start == -1:
-            start = cursor
-        end = start + len(piece)
-
-        chunks.append(
-            Chunk(
-                chunk_id=len(chunks),
-                start=start,
-                end=end,
-                text=piece,
-            )
-        )
-        cursor = end
-
-    if overlap > 0 and chunks:
-        overlapped_chunks: list[Chunk] = []
-        for i, c in enumerate(chunks):
-            start = c.start
-            end = c.end
-            if i > 0:
-                start = max(0, start - overlap)
-
-            overlapped_chunks.append(
-                Chunk(
-                    chunk_id=i,
-                    start=start,
-                    end=end,
-                    text=text[start:end],
-                )
-            )
-        return overlapped_chunks
-
-    return chunks
+    return _build_chunks_from_pieces(
+        text=text,
+        pieces=pieces,
+        chunk_size=chunk_size,
+        overlap=overlap,
+    )
 
 
 class BM25Index:
@@ -179,28 +271,41 @@ class BM25Index:
         self.filename = filename
         self.chunks = chunks
         self.tokenized = [simple_tokenize(c.text) for c in chunks]
-        self.bm25 = BM25Okapi(self.tokenized)
+        self.bm25 = BM25Okapi(self.tokenized) if self.tokenized else None
         self.indexed_at = datetime.now(timezone.utc).isoformat()
 
     def search(self, query: str, top_k: int = 5) -> list[dict]:
+        if top_k <= 0 or self.bm25 is None or not self.chunks:
+            return []
+
         q_tokens = simple_tokenize(query)
+        if not q_tokens:
+            return []
+
         scores = self.bm25.get_scores(q_tokens)
-        ranked = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:top_k]
+        ranked = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)
 
         hits = []
         for i in ranked:
+            score = float(scores[i])
+            if score <= 0:
+                continue
+
             c = self.chunks[i]
             hits.append(
                 {
                     "file_id": self.file_id,
                     "filename": self.filename,
                     "chunk_id": c.chunk_id,
-                    "score": float(scores[i]),
+                    "score": score,
                     "start": c.start,
                     "end": c.end,
                     "text": c.text,
                 }
             )
+            if len(hits) >= top_k:
+                break
+
         return hits
 
 
@@ -236,6 +341,9 @@ class IndexService:
 
                 text = parser.parse(p)
 
+                if not text.strip():
+                    raise ValueError("parsed document is empty")
+
                 if chunk_method == "recursive":
                     chunks = chunk_text_recursive(
                         text,
@@ -248,6 +356,9 @@ class IndexService:
                         chunk_size=chunk_size,
                         overlap=overlap,
                     )
+
+                if not chunks:
+                    raise ValueError("no chunks generated from document")
 
                 filename = p.name.split("__", 1)[1] if "__" in p.name else p.name
 
@@ -308,8 +419,10 @@ class IndexService:
             INDEX_COUNT.labels(status="failed", chunk_method=chunk_method).inc()
             INDEX_LATENCY.labels(chunk_method=chunk_method).observe(duration_ms / 1000)
 
-            span.record_exception(e)
-            span.set_attribute("citerag.error", True)
+            current_span = trace.get_current_span()
+            if current_span is not None:
+                current_span.record_exception(e)
+                current_span.set_attribute("citerag.error", True)
 
             log_event(
                 "build_index_failed",
@@ -394,13 +507,16 @@ class IndexService:
         return index.search(question, top_k=top_k)
 
     def search_all_files(self, question: str, top_k: int = 3) -> list[dict]:
+        if top_k <= 0:
+            return []
+
         all_hits = []
 
         for file_id in self.index_repo.list_file_ids():
             hits = self.search_in_file(file_id, question, top_k=top_k)
             all_hits.extend(hits)
 
-        all_hits.sort(key=lambda x: x["score"], reverse=True)
+        all_hits.sort(key=lambda x: float(x.get("score", 0.0)), reverse=True)
         return all_hits[:top_k]
 
     def has_index(self, file_id: str) -> bool:

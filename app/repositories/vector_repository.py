@@ -1,26 +1,39 @@
 from __future__ import annotations
 
 import math
+from threading import RLock
 from typing import Any
 
 
 class InMemoryVectorRepository:
     def __init__(self) -> None:
         self._chunks: list[dict[str, Any]] = []
+        self._lock = RLock()
 
     def upsert_chunks(self, chunks: list[dict[str, Any]]) -> None:
         if not chunks:
             return
 
-        file_id = chunks[0]["file_id"]
-        self.clear_file(file_id)
-        self._chunks.extend(chunks)
+        file_ids = {chunk["file_id"] for chunk in chunks}
+        if len(file_ids) != 1:
+            raise ValueError("upsert_chunks expects chunks from exactly one file_id")
+
+        file_id = next(iter(file_ids))
+        with self._lock:
+            self._chunks = [c for c in self._chunks if c["file_id"] != file_id]
+            self._chunks.extend(chunks)
 
     def clear_file(self, file_id: str) -> None:
-        self._chunks = [c for c in self._chunks if c["file_id"] != file_id]
+        with self._lock:
+            self._chunks = [c for c in self._chunks if c["file_id"] != file_id]
+
+    def clear_all(self) -> None:
+        with self._lock:
+            self._chunks.clear()
 
     def has_any_vectors(self) -> bool:
-        return len(self._chunks) > 0
+        with self._lock:
+            return bool(self._chunks)
 
     def search(
         self,
@@ -28,7 +41,13 @@ class InMemoryVectorRepository:
         top_k: int = 5,
         file_id: str | None = None,
     ) -> list[dict[str, Any]]:
+        if top_k <= 0 or not query_vec:
+            return []
+
         def cosine(a: list[float], b: list[float]) -> float:
+            if len(a) != len(b):
+                return 0.0
+
             dot = sum(x * y for x, y in zip(a, b))
             na = math.sqrt(sum(x * x for x in a))
             nb = math.sqrt(sum(y * y for y in b))
@@ -36,13 +55,19 @@ class InMemoryVectorRepository:
                 return 0.0
             return dot / (na * nb)
 
-        candidates = self._chunks
-        if file_id is not None:
-            candidates = [c for c in candidates if c["file_id"] == file_id]
+        with self._lock:
+            if file_id is not None:
+                candidates = [c.copy() for c in self._chunks if c["file_id"] == file_id]
+            else:
+                candidates = [c.copy() for c in self._chunks]
 
         scored = []
         for c in candidates:
-            score = cosine(query_vec, c["embedding"])
+            embedding = c.get("embedding", [])
+            score = cosine(query_vec, embedding)
+            if score <= 0:
+                continue
+
             scored.append(
                 {
                     "file_id": c["file_id"],

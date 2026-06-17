@@ -212,8 +212,13 @@
       margin: 6px 0 0;
       white-space: pre-wrap;
       word-break: break-word;
+      overflow-wrap: anywhere;
       font: inherit;
       color: #23384d;
+    }
+
+    .mono {
+      font-family: Consolas, Monaco, "SFMono-Regular", monospace;
     }
 
     .link-button {
@@ -233,6 +238,18 @@
       padding: 10px;
       margin-top: 8px;
       background: #f6fbff;
+    }
+
+    .hit pre {
+      margin: 8px 0 0;
+      max-height: 260px;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+      font: inherit;
+      line-height: 1.6;
+      color: #23384d;
     }
 
     .grow {
@@ -384,6 +401,7 @@
   <script>
     const HISTORY_KEY = "citerag_qa_history_v1";
     const HISTORY_MAX = 20;
+    const FRONTEND_VERSION = "source-ref-ui-v2";
 
     function loadHistoryFromStorage() {
       try {
@@ -464,7 +482,10 @@
       }
       if (!res.ok) {
         const detail = data && typeof data === "object" ? data.detail : null;
-        throw new Error(detail || ("HTTP " + res.status));
+        const detailText = Array.isArray(detail)
+          ? detail.map((d) => d.msg || JSON.stringify(d)).join("; ")
+          : detail;
+        throw new Error(detailText || ("HTTP " + res.status));
       }
       return data;
     }
@@ -589,7 +610,12 @@
     }
 
     function pushHistory(entry) {
-      state.qaHistory.unshift(entry);
+      const safeEntry = {
+        ...entry,
+        hits: Array.isArray(entry.hits) ? entry.hits.slice(0, 5) : [],
+        citations: Array.isArray(entry.citations) ? entry.citations.slice(0, 5) : [],
+      };
+      state.qaHistory.unshift(safeEntry);
       if (state.qaHistory.length > HISTORY_MAX) {
         state.qaHistory = state.qaHistory.slice(0, HISTORY_MAX);
       }
@@ -886,7 +912,11 @@
 
           const meta = document.createElement("div");
           meta.className = "small";
-          meta.textContent = "chunk_id=" + String(c.chunk_id) + " | " + String(c.start) + "-" + String(c.end);
+          const sourceRef = c.source_ref || ((c.file_id || "") + ":" + String(c.chunk_id));
+          meta.innerHTML =
+            'source_ref=<span class="mono">' + escapeHtml(sourceRef) + '</span>' +
+            " | chunk_id=" + escapeHtml(c.chunk_id) +
+            " | " + escapeHtml(c.start) + "-" + escapeHtml(c.end);
 
           div.appendChild(heading);
           div.appendChild(meta);
@@ -910,9 +940,10 @@
       hits.forEach((h) => {
         const div = document.createElement("div");
         div.className = "hit";
+        const sourceRef = h.source_ref || ((h.file_id || "") + ":" + String(h.chunk_id));
         div.innerHTML = `
           <div><strong>${escapeHtml(h.filename || "-")}</strong></div>
-          <div class="small">chunk_id=${escapeHtml(h.chunk_id)} | score=${escapeHtml(h.score)} | ${escapeHtml(h.start)}-${escapeHtml(h.end)}</div>
+          <div class="small">source_ref=<span class="mono">${escapeHtml(sourceRef)}</span> | chunk_id=${escapeHtml(h.chunk_id)} | score=${escapeHtml(Number(h.score || 0).toFixed(4))} | ${escapeHtml(h.start)}-${escapeHtml(h.end)}</div>
           <pre>${escapeHtml(h.text || "")}</pre>
         `;
         els.hitsArea.appendChild(div);
@@ -1000,6 +1031,7 @@
 
     async function init() {
       els.apiBaseInput.value = state.apiBase;
+      console.info("CiteRAG frontend loaded:", FRONTEND_VERSION);
       bindEvents();
       onScopeChange();
       onDebugModeChange();

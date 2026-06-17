@@ -33,12 +33,16 @@ def _dedupe_keep_order(items: list[str]) -> list[str]:
         seen.add(key)
     return out
 
+
 def rrf_fuse(
     bm25_hits: list[dict[str, Any]],
     vector_hits: list[dict[str, Any]],
     top_k: int = 5,
     k: int = 60,
 ) -> list[dict[str, Any]]:
+    if top_k <= 0:
+        return []
+
     fused: dict[tuple[str, int], dict[str, Any]] = {}
 
     def add_hits(hits: list[dict[str, Any]], source: str) -> None:
@@ -51,13 +55,14 @@ def rrf_fuse(
                     "sources": [],
                 }
             fused[key]["hybrid_score"] += 1.0 / (k + rank)
-            fused[key]["sources"].append(source)
+            if source not in fused[key]["sources"]:
+                fused[key]["sources"].append(source)
 
     add_hits(bm25_hits, "bm25")
     add_hits(vector_hits, "vector")
 
     results = list(fused.values())
-    results.sort(key=lambda x: x["hybrid_score"], reverse=True)
+    results.sort(key=lambda x: float(x.get("hybrid_score", 0.0)), reverse=True)
     return results[:top_k]
 
 
@@ -92,35 +97,63 @@ class RetrievalService:
         hit_lists: list[list[dict[str, Any]]],
         top_k: int,
     ) -> list[dict[str, Any]]:
+        if top_k <= 0:
+            return []
+
         merged: dict[tuple[str, int], dict[str, Any]] = {}
         for hits in hit_lists:
             for hit in hits:
                 key = (hit["file_id"], hit["chunk_id"])
+                curr_score = float(hit.get("score", hit.get("hybrid_score", 0.0)))
+
                 if key not in merged:
                     merged[key] = hit
                     continue
-                prev_score = float(merged[key].get("score", merged[key].get("hybrid_score", 0.0)))
-                curr_score = float(hit.get("score", hit.get("hybrid_score", 0.0)))
+
+                prev_score = float(
+                    merged[key].get("score", merged[key].get("hybrid_score", 0.0))
+                )
                 if curr_score > prev_score:
                     merged[key] = hit
+
         results = list(merged.values())
-        results.sort(key=lambda x: float(x.get("score", x.get("hybrid_score", 0.0))), reverse=True)
+        results.sort(
+            key=lambda x: float(x.get("score", x.get("hybrid_score", 0.0))),
+            reverse=True,
+        )
         return results[:top_k]
 
-    def _apply_process_bonus(self, hits: list[dict[str, Any]], question_type: str) -> list[dict[str, Any]]:
+    def _apply_process_bonus(
+        self,
+        hits: list[dict[str, Any]],
+        question_type: str,
+    ) -> list[dict[str, Any]]:
         if question_type != "process":
             return hits
 
         timeline_terms = [
-            "早期", "后来", "随后", "近年来", "最初", "进一步",
-            "early", "later", "recent", "initially", "subsequently",
+            "早期",
+            "后来",
+            "随后",
+            "近年来",
+            "最初",
+            "进一步",
+            "发展",
+            "演进",
+            "阶段",
+            "early",
+            "later",
+            "recent",
+            "initially",
+            "subsequently",
+            "development",
+            "evolution",
+            "stage",
         ]
         boosted: list[dict[str, Any]] = []
         for hit in hits:
             text = hit.get("text", "").lower()
-            bonus = 0.0
-            if any(term in text for term in timeline_terms):
-                bonus = 0.15
+            bonus = 0.15 if any(term in text for term in timeline_terms) else 0.0
             base_score = float(hit.get("score", hit.get("hybrid_score", 0.0)))
             boosted.append({**hit, "score": base_score + bonus})
 
@@ -196,7 +229,14 @@ class RetrievalService:
         file_id: str | None = None,
         question_type: str = "general",
     ) -> list[dict]:
-        variants = self.build_query_variants(question=question, question_type=question_type)
+        if top_k <= 0:
+            return []
+
+        retrieval_mode = retrieval_mode.lower().strip()
+        variants = self.build_query_variants(
+            question=question,
+            question_type=question_type,
+        )
 
         if retrieval_mode == "bm25":
             hit_lists = [
@@ -205,6 +245,7 @@ class RetrievalService:
             ]
             merged = self._merge_hits_by_score(hit_lists, top_k=top_k)
             return self._apply_process_bonus(merged, question_type=question_type)
+
         if retrieval_mode == "vector":
             hit_lists = [
                 self.search_vector(q, top_k=top_k, file_id=file_id)
@@ -212,6 +253,7 @@ class RetrievalService:
             ]
             merged = self._merge_hits_by_score(hit_lists, top_k=top_k)
             return self._apply_process_bonus(merged, question_type=question_type)
+
         if retrieval_mode == "hybrid":
             hit_lists = [
                 self.search_hybrid(q, top_k=top_k, file_id=file_id)
@@ -219,6 +261,7 @@ class RetrievalService:
             ]
             merged = self._merge_hits_by_score(hit_lists, top_k=top_k)
             return self._apply_process_bonus(merged, question_type=question_type)
+
         raise ValueError(f"unsupported retrieval_mode: {retrieval_mode}")
         
 
@@ -263,68 +306,32 @@ class RetrievalService:
         final_top_k: int,
         rerank_mode: str = "none",
     ) -> list[dict]:
-        if not hits:
+        if final_top_k <= 0 or not hits:
             return []
+
+        rerank_mode = rerank_mode.lower().strip()
 
         if rerank_mode == "none":
             return self._select_diverse_hits(hits, final_top_k)
 
         if rerank_mode == "cohere":
             try:
-                provider = CohereRerankProvider()
+                provider = self.rerank_provider or CohereRerankProvider()
                 reranked = provider.rerank(
                     query=question,
                     hits=hits,
-                    top_n=len(hits),  # 先对全部候选排序
+                    top_n=len(hits),
                 )
-
-                selected: list[dict] = []
-                similarity_threshold = 0.75
-
-                for hit in reranked:
-                    hit_text = hit.get("text", "").strip()
-
-                    is_too_similar = False
-                    for chosen in selected:
-                        chosen_text = chosen.get("text", "").strip()
-                        sim = _jaccard_similarity(hit_text, chosen_text)
-                        if sim >= similarity_threshold:
-                            is_too_similar = True
-                            break
-
-                    if is_too_similar:
-                        continue
-
-                    selected.append(hit)
-
-                    if len(selected) >= final_top_k:
-                        break
-
-                # 如果去重/多样性过滤后不够 top_k，就从 reranked 里补齐
-                if len(selected) < final_top_k:
-                    selected_ids = {
-                        (h.get("file_id"), h.get("chunk_id"), h.get("text", "").strip())
-                        for h in selected
-                    }
-                    for hit in reranked:
-                        key = (
-                            hit.get("file_id"),
-                            hit.get("chunk_id"),
-                            hit.get("text", "").strip(),
-                        )
-                        if key in selected_ids:
-                            continue
-                        selected.append(hit)
-                        selected_ids.add(key)
-                        if len(selected) >= final_top_k:
-                            break
-
-                return selected
+                return self._select_diverse_hits(
+                    reranked,
+                    final_top_k,
+                    similarity_threshold=0.75,
+                )
             except Exception as e:
-                # graceful fallback to baseline top_k when external rerank fails
+                # Graceful fallback to baseline top_k when external rerank fails.
                 print(f"[rerank_fallback] mode=cohere error={e}")
                 return self._select_diverse_hits(hits, final_top_k)
-            
+
         return self._select_diverse_hits(hits, final_top_k)
 
     def _select_diverse_hits(
@@ -333,39 +340,35 @@ class RetrievalService:
         final_top_k: int,
         similarity_threshold: float = 0.8,
     ) -> list[dict]:
-        if not hits:
+        if final_top_k <= 0 or not hits:
             return []
 
         selected: list[dict] = []
+        selected_keys: set[tuple[str | None, int | None]] = set()
 
         for hit in hits:
             hit_text = hit.get("text", "").strip()
+            key = (hit.get("file_id"), hit.get("chunk_id"))
 
-            if not hit_text:
+            if not hit_text or key in selected_keys:
                 continue
 
-            too_similar = False
-            for chosen in selected:
-                chosen_text = chosen.get("text", "").strip()
-                sim = _jaccard_similarity(hit_text, chosen_text)
-                if sim >= similarity_threshold:
-                    too_similar = True
-                    break
-
+            too_similar = any(
+                _jaccard_similarity(hit_text, chosen.get("text", ""))
+                >= similarity_threshold
+                for chosen in selected
+            )
             if too_similar:
                 continue
 
             selected.append(hit)
+            selected_keys.add(key)
             if len(selected) >= final_top_k:
                 return selected
 
-        # Backfill to keep output size stable if diversity filter is strict.
-        selected_keys = {
-            (h.get("file_id"), h.get("chunk_id"), h.get("text", "").strip())
-            for h in selected
-        }
+        # Backfill to keep output size stable if diversity filtering is strict.
         for hit in hits:
-            key = (hit.get("file_id"), hit.get("chunk_id"), hit.get("text", "").strip())
+            key = (hit.get("file_id"), hit.get("chunk_id"))
             if key in selected_keys:
                 continue
             selected.append(hit)

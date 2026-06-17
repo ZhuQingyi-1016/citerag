@@ -17,6 +17,7 @@ class SQLiteRepository:
 
     def _connect(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self.db_path)
+        conn.execute("PRAGMA foreign_keys = ON")
         conn.row_factory = sqlite3.Row
         return conn
 
@@ -43,7 +44,8 @@ class SQLiteRepository:
                     start_pos INTEGER NOT NULL,
                     end_pos INTEGER NOT NULL,
                     text TEXT NOT NULL,
-                    UNIQUE(file_id, chunk_id)
+                    UNIQUE(file_id, chunk_id),
+                    FOREIGN KEY(file_id) REFERENCES files(file_id) ON DELETE CASCADE
                 )
                 """
             )
@@ -54,7 +56,8 @@ class SQLiteRepository:
                     file_id TEXT PRIMARY KEY,
                     bm25_indexed INTEGER NOT NULL DEFAULT 0,
                     vector_indexed INTEGER NOT NULL DEFAULT 0,
-                    indexed_at TEXT
+                    indexed_at TEXT,
+                    FOREIGN KEY(file_id) REFERENCES files(file_id) ON DELETE CASCADE
                 )
                 """
             )
@@ -75,6 +78,8 @@ class SQLiteRepository:
         self._ensure_column("files", "display_name", "display_name TEXT")
         self._ensure_column("files", "group_id", "group_id TEXT")
         self._ensure_column("files", "deleted_at", "deleted_at TEXT")
+        self._ensure_chunks_foreign_key()
+        self._ensure_index_status_foreign_key()
 
         with self._connect() as conn:
             conn.execute("DROP INDEX IF EXISTS idx_files_content_hash")
@@ -104,6 +109,75 @@ class SQLiteRepository:
                 WHERE display_name IS NULL
                 """
             )
+            conn.commit()
+
+
+    def _has_foreign_key(self, table: str, target_table: str) -> bool:
+        with self._connect() as conn:
+            rows = conn.execute(f"PRAGMA foreign_key_list({table})").fetchall()
+            return any(row["table"] == target_table for row in rows)
+
+    def _ensure_chunks_foreign_key(self) -> None:
+        if self._has_foreign_key("chunks", "files"):
+            return
+
+        with self._connect() as conn:
+            conn.execute("PRAGMA foreign_keys = OFF")
+            conn.execute("ALTER TABLE chunks RENAME TO chunks_old")
+            conn.execute(
+                """
+                CREATE TABLE chunks (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    file_id TEXT NOT NULL,
+                    chunk_id INTEGER NOT NULL,
+                    start_pos INTEGER NOT NULL,
+                    end_pos INTEGER NOT NULL,
+                    text TEXT NOT NULL,
+                    UNIQUE(file_id, chunk_id),
+                    FOREIGN KEY(file_id) REFERENCES files(file_id) ON DELETE CASCADE
+                )
+                """
+            )
+            conn.execute(
+                """
+                INSERT INTO chunks (id, file_id, chunk_id, start_pos, end_pos, text)
+                SELECT id, file_id, chunk_id, start_pos, end_pos, text
+                FROM chunks_old
+                WHERE file_id IN (SELECT file_id FROM files)
+                """
+            )
+            conn.execute("DROP TABLE chunks_old")
+            conn.execute("PRAGMA foreign_keys = ON")
+            conn.commit()
+
+    def _ensure_index_status_foreign_key(self) -> None:
+        if self._has_foreign_key("index_status", "files"):
+            return
+
+        with self._connect() as conn:
+            conn.execute("PRAGMA foreign_keys = OFF")
+            conn.execute("ALTER TABLE index_status RENAME TO index_status_old")
+            conn.execute(
+                """
+                CREATE TABLE index_status (
+                    file_id TEXT PRIMARY KEY,
+                    bm25_indexed INTEGER NOT NULL DEFAULT 0,
+                    vector_indexed INTEGER NOT NULL DEFAULT 0,
+                    indexed_at TEXT,
+                    FOREIGN KEY(file_id) REFERENCES files(file_id) ON DELETE CASCADE
+                )
+                """
+            )
+            conn.execute(
+                """
+                INSERT INTO index_status (file_id, bm25_indexed, vector_indexed, indexed_at)
+                SELECT file_id, bm25_indexed, vector_indexed, indexed_at
+                FROM index_status_old
+                WHERE file_id IN (SELECT file_id FROM files)
+                """
+            )
+            conn.execute("DROP TABLE index_status_old")
+            conn.execute("PRAGMA foreign_keys = ON")
             conn.commit()
 
 
@@ -182,6 +256,7 @@ class SQLiteRepository:
                     uploaded_at,
                     content_hash
                 FROM files
+                WHERE deleted_at IS NULL
                 ORDER BY uploaded_at DESC
                 """
             ).fetchall()
@@ -190,6 +265,17 @@ class SQLiteRepository:
     # ---------- chunks ----------
     def replace_chunks(self, file_id: str, chunks: list[dict[str, Any]]) -> None:
         with self._connect() as conn:
+            row = conn.execute(
+                """
+                SELECT file_id
+                FROM files
+                WHERE file_id = ?
+                  AND deleted_at IS NULL
+                """,
+                (file_id,),
+            ).fetchone()
+            if row is None:
+                raise ValueError(f"cannot replace chunks for missing or deleted file: {file_id}")
             conn.execute("DELETE FROM chunks WHERE file_id = ?", (file_id,))
             conn.executemany(
                 """
@@ -213,10 +299,13 @@ class SQLiteRepository:
         with self._connect() as conn:
             rows = conn.execute(
                 """
-                SELECT file_id, chunk_id, start_pos, end_pos, text
-                FROM chunks
-                WHERE file_id = ?
-                ORDER BY chunk_id ASC
+                SELECT c.file_id, c.chunk_id, c.start_pos, c.end_pos, c.text
+                FROM chunks c
+                JOIN files f
+                ON c.file_id = f.file_id
+                WHERE c.file_id = ?
+                  AND f.deleted_at IS NULL
+                ORDER BY c.chunk_id ASC
                 """,
                 (file_id,),
             ).fetchall()
@@ -231,6 +320,17 @@ class SQLiteRepository:
         indexed_at: str | None,
     ) -> None:
         with self._connect() as conn:
+            row = conn.execute(
+                """
+                SELECT file_id
+                FROM files
+                WHERE file_id = ?
+                  AND deleted_at IS NULL
+                """,
+                (file_id,),
+            ).fetchone()
+            if row is None:
+                raise ValueError(f"cannot update index status for missing or deleted file: {file_id}")
             conn.execute(
                 """
                 INSERT INTO index_status (file_id, bm25_indexed, vector_indexed, indexed_at)
@@ -248,9 +348,12 @@ class SQLiteRepository:
         with self._connect() as conn:
             row = conn.execute(
                 """
-                SELECT file_id, bm25_indexed, vector_indexed, indexed_at
-                FROM index_status
-                WHERE file_id = ?
+                SELECT s.file_id, s.bm25_indexed, s.vector_indexed, s.indexed_at
+                FROM index_status s
+                JOIN files f
+                ON s.file_id = f.file_id
+                WHERE s.file_id = ?
+                  AND f.deleted_at IS NULL
                 """,
                 (file_id,),
             ).fetchone()
@@ -347,6 +450,12 @@ class SQLiteRepository:
                 """,
                 (file_id,),
             )
+            conn.commit()
+
+    def clear_index_data_for_file(self, file_id: str) -> None:
+        with self._connect() as conn:
+            conn.execute("DELETE FROM chunks WHERE file_id = ?", (file_id,))
+            conn.execute("DELETE FROM index_status WHERE file_id = ?", (file_id,))
             conn.commit()
 
     def find_file_by_content_hash(self, content_hash: str) -> dict[str, Any] | None:
@@ -454,6 +563,8 @@ class SQLiteRepository:
                 """,
                 (deleted_at, deleted_at, file_id),
             )
+            conn.execute("DELETE FROM chunks WHERE file_id = ?", (file_id,))
+            conn.execute("DELETE FROM index_status WHERE file_id = ?", (file_id,))
             conn.commit()
         return self.get_file(file_id=file_id, include_deleted=True)
 

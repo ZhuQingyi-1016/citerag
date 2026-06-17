@@ -26,6 +26,28 @@ from app.services.index_service import IndexService
 from app.services.retrieval_service import RetrievalService
 
 
+def _build_upload_failure_response(
+    *,
+    file_id: str,
+    filename: str,
+    display_name: str | None,
+    group_id: str | None,
+    size_bytes: int,
+    status: str,
+    message: str,
+) -> UploadResponse:
+    return UploadResponse(
+        file_id=file_id,
+        filename=filename,
+        display_name=display_name,
+        group_id=group_id,
+        size_bytes=size_bytes,
+        indexed=False,
+        indexed_status=status,
+        indexed_message=message,
+    )
+
+
 class FileService:
     def __init__(
         self,
@@ -51,12 +73,36 @@ class FileService:
             raise ValueError("group_id not found")
 
         file_id, filename, size_bytes = self.file_repo.save_upload(file)
+        if size_bytes <= 0:
+            path = self.file_repo.find_path_by_file_id(file_id)
+            self.file_repo.delete_file_by_path(path)
+
+            duration_ms = elapsed_ms(start)
+            UPLOAD_COUNT.labels(status="empty_file").inc()
+            UPLOAD_LATENCY.observe(duration_ms / 1000)
+            log_event(
+                "upload_file",
+                file_id=file_id,
+                filename=filename,
+                status="empty_file",
+                auto_index=auto_index,
+                duration_ms=duration_ms,
+            )
+            raise ValueError("uploaded file is empty")
+
         path = self.file_repo.find_path_by_file_id(file_id)
         content_hash = self.file_repo.compute_file_hash(path)
 
         existing = self.sqlite_repo.find_file_by_content_hash(content_hash)
         if existing is not None:
             self.file_repo.delete_file_by_path(path)
+            if group_id is not None and existing.get("group_id") != group_id:
+                log_event(
+                    "upload_file_duplicate_group_ignored",
+                    existing_file_id=existing["file_id"],
+                    requested_group_id=group_id,
+                    existing_group_id=existing.get("group_id"),
+                )
 
             existing_file_id = existing["file_id"]
             status = self.sqlite_repo.get_index_status(existing_file_id)
@@ -186,6 +232,9 @@ class FileService:
                 indexed = False
                 indexed_status = "index_failed"
                 indexed_message = f"File uploaded, but indexing failed: {str(e)}"
+                self.index_service.index_repo.clear_file(file_id)
+                self.retrieval_service.vector_repo.clear_file(file_id)
+                self.sqlite_repo.clear_index_data_for_file(file_id)
 
         duration_ms = elapsed_ms(start)
         UPLOAD_COUNT.labels(status=indexed_status).inc()
@@ -324,8 +373,7 @@ class FileService:
         # Cleanup all retrieval/index artifacts so deleted files are never surfaced.
         self.index_service.index_repo.clear_file(file_id)
         self.retrieval_service.vector_repo.clear_file(file_id)
-        self.sqlite_repo.clear_chunks_for_file(file_id)
-        self.sqlite_repo.clear_index_status(file_id)
+        self.sqlite_repo.clear_index_data_for_file(file_id)
 
         try:
             path = self.file_repo.find_path_by_file_id(file_id)
